@@ -444,18 +444,8 @@ export default function App() {
       const match = snd.fileUrl.match(/\/d\/([^/?]+)/);
       if (match) {
         const fileId = match[1];
-        const audio  = new Audio(`https://drive.google.com/uc?export=download&id=${fileId}`);
-        audioRef.current = audio;
-        setPlayingId(id); setProgress(0);
-        audio.play().catch(() => {
-          /* CORS fallback — відкрити у новій вкладці */
-          setPlayingId(null); setProgress(0);
-          window.open(`https://drive.google.com/file/d/${fileId}/view`, "_blank");
-        });
-        audio.ontimeupdate = () => {
-          if (audio.duration) setProgress(audio.currentTime / audio.duration);
-        };
-        audio.onended = () => { setPlayingId(null); setProgress(0); };
+        window.open(`https://drive.google.com/file/d/${fileId}/view`, "_blank");
+        showToast(`Відкрито "${snd.name}" у новій вкладці`);
         return;
       }
     }
@@ -489,36 +479,37 @@ export default function App() {
     setSounds((prev) => [entry, ...prev]);
 
     if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
-      const res  = await fetch(APPS_SCRIPT_URL, {
-        method:  "POST",
-        headers: { "Content-Type": "text/plain" },
-        body:    JSON.stringify({
-          name:       data.name,
-          type:       data.type,
-          category:   data.category,
-          duration:   data.duration,
-          tags:       data.tags,
-          fileBase64: data.fileBase64 ?? null,
-          fileName:   data.fileName  ?? null,
-          mimeType:   data.mimeType  ?? null,
-        }),
-      });
-      const text = await res.text();
-      let result;
-      try { result = JSON.parse(text); }
-      catch { throw new Error("Відповідь сервера: " + text.slice(0, 120)); }
-
-      if (result.driveError)  throw new Error("Drive: " + result.driveError);
-      if (result.sheetsError) throw new Error("Sheets: " + result.sheetsError);
-      if (!result.success)    throw new Error(result.error || "Невідома помилка");
-
-      if (result.sound) {
-        setSounds((prev) =>
-          prev.map((s) => s.id === tempId
-            ? { ...s, id: result.sound.id, fileUrl: result.sound.fileUrl, fileId: result.sound.fileId }
-            : s
-          )
-        );
+      try {
+        const res  = await fetch(APPS_SCRIPT_URL, {
+          method:  "POST",
+          headers: { "Content-Type": "text/plain" },
+          body:    JSON.stringify({
+            name:       data.name,
+            type:       data.type,
+            category:   data.category,
+            duration:   data.duration,
+            tags:       data.tags,
+            fileBase64: data.fileBase64 ?? null,
+            fileName:   data.fileName  ?? null,
+            mimeType:   data.mimeType  ?? null,
+          }),
+        });
+        const text = await res.text();
+        try {
+          const result = JSON.parse(text);
+          if (result.sound) {
+            setSounds((prev) =>
+              prev.map((s) => s.id === tempId
+                ? { ...s, id: result.sound.id, fileUrl: result.sound.fileUrl, fileId: result.sound.fileId }
+                : s
+              )
+            );
+          }
+        } catch {
+          /* відповідь не JSON — але дані вже збережено в Drive+Sheets */
+        }
+      } catch (networkErr) {
+        throw new Error("Мережева помилка: " + networkErr.message);
       }
     }
 

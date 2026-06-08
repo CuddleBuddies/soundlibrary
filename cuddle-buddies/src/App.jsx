@@ -8,7 +8,7 @@ import { SOUNDS, CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
 
 /* ─── Вставте сюди посилання після деплою Apps Script ─── */
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyEeX9pQCK3-8YWtsdmc0bmimR-f5V1Te0y5z5sPhMR8QhXAcXlyyY13k5P9EgwPk2p/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTvGdLPbcl2HH5oAsEZN6BwTZOd_TwqNnWpfW3MZC3faMR4r1kAECBW5PB9qzcceCw/exec";
 
 /* ─── PasswordGate ─── */
 
@@ -132,14 +132,21 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
   reader.readAsDataURL(file);
 });
 
-const normalizeRemoteSound = (s) => ({
-  ...s,
-  duration: parseFloat(s.duration) || 1,
-  tags: typeof s.tags === "string"
-    ? s.tags.split(",").map((t) => t.trim()).filter(Boolean)
-    : (s.tags || []),
-  wave: makeWave(s.name),
-});
+const normalizeRemoteSound = (s) => {
+  try {
+    return {
+      ...s,
+      name:     String(s.name     || "Unknown Sound"),
+      type:     String(s.type     || "Cartoonish"),
+      category: String(s.category || "UI"),
+      duration: parseFloat(s.duration) || 1,
+      tags: typeof s.tags === "string"
+        ? s.tags.split(",").map((t) => t.trim()).filter(Boolean)
+        : Array.isArray(s.tags) ? s.tags : ["uploaded"],
+      wave: makeWave(String(s.name || "sound")),
+    };
+  } catch { return null; }
+};
 
 /* ─── Waveform ─── */
 
@@ -397,7 +404,8 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => {
         if (data.sounds && data.sounds.length > 0) {
-          const remote = data.sounds.map(normalizeRemoteSound);
+          const remote = data.sounds.map(normalizeRemoteSound).filter(Boolean);
+          if (!remote.length) return;
           setSounds((local) => {
             const remoteIds = new Set(remote.map((s) => s.id));
             const kept = local.filter((s) => !remoteIds.has(s.id));
@@ -444,8 +452,20 @@ export default function App() {
       const match = snd.fileUrl.match(/\/d\/([^/?]+)/);
       if (match) {
         const fileId = match[1];
-        window.open(`https://drive.google.com/file/d/${fileId}/view`, "_blank");
-        showToast(`Відкрито "${snd.name}" у новій вкладці`);
+        const audio  = new Audio(`https://drive.google.com/uc?id=${fileId}&export=download`);
+        audioRef.current = audio;
+        setPlayingId(id); setProgress(0);
+        const onErr = () => {
+          setPlayingId(null); setProgress(0);
+          window.open(`https://drive.google.com/file/d/${fileId}/view`, "_blank");
+          showToast("Відкрито у новій вкладці — браузер блокує пряме відтворення");
+        };
+        audio.addEventListener("error", onErr);
+        audio.play().catch(onErr);
+        audio.ontimeupdate = () => {
+          if (audio.duration) setProgress(audio.currentTime / audio.duration);
+        };
+        audio.onended = () => { setPlayingId(null); setProgress(0); };
         return;
       }
     }

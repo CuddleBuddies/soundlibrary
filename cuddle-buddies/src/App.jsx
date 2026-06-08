@@ -7,6 +7,99 @@ import {
 import { SOUNDS, CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
 
+/* ─── Вставте сюди посилання після деплою Apps Script ─── */
+const APPS_SCRIPT_URL = "AKfycby55pl7NJuuFy9k84ar4VVgUGML7To-xu9RAU4lbXjRYGrq4C5MFLNajES0yyqK6EJzGQ";
+
+/* ─── PasswordGate ─── */
+
+const CORRECT_PASSWORD = "BuddleCuddies123RyanGosling7minutes";
+const STORAGE_KEY = "cb_auth";
+
+function PasswordGate({ children }) {
+  const [unlocked, setUnlocked] = useState(() => localStorage.getItem(STORAGE_KEY) === "1");
+  const [input, setInput]       = useState("");
+  const [error, setError]       = useState(false);
+  const [shake, setShake]       = useState(false);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (input === CORRECT_PASSWORD) {
+      localStorage.setItem(STORAGE_KEY, "1");
+      setUnlocked(true);
+    } else {
+      setError(true);
+      setShake(true);
+      setInput("");
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+
+  if (unlocked) return children;
+
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "24px",
+      background: "radial-gradient(1200px 800px at 12% -5%, #2a2456 0%, rgba(42,36,86,0) 55%), radial-gradient(1000px 700px at 100% 10%, #14384a 0%, rgba(20,56,74,0) 50%), linear-gradient(160deg, #0f1226 0%, #14132e 45%, #0c1822 100%)",
+    }}>
+      <div style={{
+        width: "100%", maxWidth: "380px",
+        background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)",
+        borderRadius: "24px", backdropFilter: "blur(24px)", padding: "36px 28px",
+        boxShadow: "0 30px 80px -20px rgba(0,0,0,0.8)",
+        animation: shake ? "cbShake 0.45s ease" : "cbPop 0.22s cubic-bezier(.16,1,.3,1)",
+      }}>
+        <img src={logoSrc} alt="Cuddle Buddies" style={{ height: 72, display: "block", margin: "0 auto 20px", filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.45))" }} />
+        <h1 style={{ color: "#fff", fontWeight: 800, fontSize: 20, textAlign: "center", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+          Cuddle Buddies
+        </h1>
+        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, textAlign: "center", margin: "0 0 24px" }}>
+          Enter the password to access the sound library
+        </p>
+        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input
+            type="password"
+            value={input}
+            onChange={(e) => { setInput(e.target.value); setError(false); }}
+            placeholder="Password"
+            autoFocus
+            style={{
+              width: "100%", boxSizing: "border-box",
+              background: error ? "rgba(255,80,80,0.08)" : "rgba(255,255,255,0.06)",
+              border: `1px solid ${error ? "rgba(255,80,80,0.5)" : "rgba(255,255,255,0.15)"}`,
+              borderRadius: 12, padding: "12px 16px", fontSize: 15,
+              color: "#fff", outline: "none", fontFamily: "inherit",
+              transition: "border-color 0.2s, background 0.2s",
+            }}
+          />
+          {error && (
+            <p style={{ color: "#ff6b6b", fontSize: 12, margin: 0, textAlign: "center" }}>
+              Wrong password — try again
+            </p>
+          )}
+          <button type="submit" style={{
+            background: "#F7CB07", color: "#1a1730", border: "none",
+            borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit",
+            boxShadow: "0 10px 30px -10px rgba(247,203,7,0.6)",
+          }}>
+            Enter
+          </button>
+        </form>
+      </div>
+      <style>{`
+        @keyframes cbShake {
+          0%,100% { transform: translateX(0); }
+          20%      { transform: translateX(-8px); }
+          40%      { transform: translateX(8px); }
+          60%      { transform: translateX(-6px); }
+          80%      { transform: translateX(6px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 /* ─── helpers ─── */
 
 const fmtDur = (s) => {
@@ -31,6 +124,22 @@ const downloadBlob = (filename, text, mime = "application/json") => {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 };
+
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload  = () => resolve(reader.result.split(",")[1]);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+
+const normalizeRemoteSound = (s) => ({
+  ...s,
+  duration: parseFloat(s.duration) || 1,
+  tags: typeof s.tags === "string"
+    ? s.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    : (s.tags || []),
+  wave: makeWave(s.name),
+});
 
 /* ─── Waveform ─── */
 
@@ -58,7 +167,7 @@ function Waveform({ wave, progress = 0, active = false }) {
 /* ─── SoundCard ─── */
 
 function SoundCard({ sound, isPlaying, progress, onPlay, onDownload }) {
-  const tm = TYPE_META[sound.type];
+  const tm = TYPE_META[sound.type] ?? TYPE_META.Cartoonish;
   return (
     <div
       className="sound-card"
@@ -69,7 +178,6 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload }) {
       }}
     >
       <div className="sound-card-row">
-        {/* play button */}
         <button
           onClick={() => onPlay(sound.id)}
           className="play-btn"
@@ -85,7 +193,6 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload }) {
             : <PlayIcon  size={20} strokeWidth={2.4} style={{ marginLeft: 2 }} />}
         </button>
 
-        {/* body */}
         <div className="sound-body">
           <div className="sound-title-row">
             <h3 className="sound-name">{sound.name}</h3>
@@ -107,7 +214,6 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload }) {
           </div>
         </div>
 
-        {/* download */}
         <button
           onClick={() => onDownload(sound)}
           className="dl-btn"
@@ -124,63 +230,89 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload }) {
 /* ─── UploadPanel ─── */
 
 function UploadPanel({ onAdd, onClose }) {
-  const [file, setFile]         = useState(null);
-  const [name, setName]         = useState("");
-  const [tags, setTags]         = useState("");
-  const [type, setType]         = useState("Cartoonish");
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [fileObj,    setFileObj]    = useState(null);
+  const [fileName,   setFileName]   = useState(null);
+  const [name,       setName]       = useState("");
+  const [tags,       setTags]       = useState("");
+  const [type,       setType]       = useState("Cartoonish");
+  const [category,   setCategory]   = useState(CATEGORIES[0]);
+  const [uploading,  setUploading]  = useState(false);
+  const [uploadErr,  setUploadErr]  = useState(null);
   const fileRef = useRef(null);
 
-  const canSubmit = name.trim().length > 0;
+  const canSubmit = name.trim().length > 0 && !uploading;
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    const parsedTags = tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
-    onAdd({
-      name: name.trim(),
-      type, category,
-      duration: 1 + Math.random() * 3,
-      tags: parsedTags.length ? parsedTags : ["uploaded"],
-      wave: makeWave(name + Date.now()),
-      fileName: file || null,
-    });
-    setName(""); setTags(""); setFile(null); setType("Cartoonish"); setCategory(CATEGORIES[0]);
-    if (fileRef.current) fileRef.current.value = "";
-    onClose?.();
+
+    setUploading(true);
+    setUploadErr(null);
+
+    try {
+      const parsedTags = tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+
+      let fileBase64 = null;
+      let mimeType   = null;
+      if (fileObj) {
+        fileBase64 = await fileToBase64(fileObj);
+        mimeType   = fileObj.type || "audio/mpeg";
+      }
+
+      await onAdd({
+        name:     name.trim(),
+        type,     category,
+        duration: 1 + Math.random() * 3,
+        tags:     parsedTags.length ? parsedTags : ["uploaded"],
+        wave:     makeWave(name + Date.now()),
+        fileBase64, fileName, mimeType,
+      });
+
+      setName(""); setTags(""); setFileObj(null); setFileName(null);
+      setType("Cartoonish"); setCategory(CATEGORIES[0]);
+      if (fileRef.current) fileRef.current.value = "";
+      onClose?.();
+    } catch (err) {
+      setUploadErr("Upload failed. Check your connection and try again.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
     <div className="upload-panel">
-      {/* close */}
       <button type="button" onClick={onClose} aria-label="Close" className="upload-close-btn">
         <XIcon size={17} />
       </button>
 
-      {/* heading */}
       <div className="upload-heading">
         <div className="upload-icon-wrap">
           <UploadIcon size={18} />
         </div>
         <div>
           <h2 className="upload-title">Drop a new sound</h2>
-          <p className="upload-subtitle">Adds it to the live library so the team can search it right away.</p>
+          <p className="upload-subtitle">Saves the file to Google Drive and adds it to the library.</p>
         </div>
       </div>
 
       <form onSubmit={submit} className="upload-form">
-        {/* file picker */}
         <div>
           <label className="form-label">Audio file</label>
           <button type="button" onClick={() => fileRef.current?.click()} className="file-pick-btn">
             <span className="file-pick-icon"><FileIcon size={18} /></span>
             <span className="file-pick-text">
-              <span className="file-pick-name">{file ?? "Choose an audio file"}</span>
-              <span className="file-pick-hint">{file ? "Ready to add" : "WAV, MP3, OGG · mock picker"}</span>
+              <span className="file-pick-name">{fileName ?? "Choose an audio file"}</span>
+              <span className="file-pick-hint">{fileName ? "Ready to upload" : "WAV, MP3, OGG"}</span>
             </span>
           </button>
-          <input ref={fileRef} type="file" accept="audio/*" className="sr-only"
-            onChange={(e) => setFile(e.target.files?.[0]?.name ?? null)} />
+          <input
+            ref={fileRef} type="file" accept="audio/*" className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              setFileObj(f);
+              setFileName(f?.name ?? null);
+            }}
+          />
         </div>
 
         <div className="form-grid2">
@@ -206,7 +338,6 @@ function UploadPanel({ onAdd, onClose }) {
             placeholder="funny, jump, retro" />
         </div>
 
-        {/* type toggle */}
         <div>
           <label className="form-label">Type</label>
           <div className="type-toggle">
@@ -219,8 +350,7 @@ function UploadPanel({ onAdd, onClose }) {
                     color: on ? "#1a1730" : "rgba(255,255,255,0.7)",
                     boxShadow: on ? "0 4px 14px -4px rgba(247,203,7,0.6)" : "none",
                   }}>
-                  <span className="type-toggle-dot"
-                    style={{ background: on ? "#1a1730" : TYPE_META[t].dot }} />
+                  <span className="type-toggle-dot" style={{ background: on ? "#1a1730" : TYPE_META[t].dot }} />
                   {t}
                 </button>
               );
@@ -228,9 +358,15 @@ function UploadPanel({ onAdd, onClose }) {
           </div>
         </div>
 
+        {uploadErr && (
+          <p style={{ color: "#ff6b6b", fontSize: 12, margin: 0, textAlign: "center" }}>{uploadErr}</p>
+        )}
+
         <button type="submit" disabled={!canSubmit} className="submit-btn"
           style={{ background: "#F7CB07", color: "#1a1730", boxShadow: "0 10px 30px -10px rgba(247,203,7,0.6)" }}>
-          <UploadIcon size={17} strokeWidth={2.4} /> Add to library
+          {uploading
+            ? <><span style={{ opacity: 0.7 }}>Uploading…</span></>
+            : <><UploadIcon size={17} strokeWidth={2.4} /> Add to library</>}
         </button>
       </form>
     </div>
@@ -240,15 +376,33 @@ function UploadPanel({ onAdd, onClose }) {
 /* ─── App ─── */
 
 export default function App() {
-  const [sounds,     setSounds]     = useState(() => SOUNDS);
-  const [query,      setQuery]      = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");
-  const [activeCat,  setActiveCat]  = useState(null);
-  const [playingId,  setPlayingId]  = useState(null);
-  const [progress,   setProgress]   = useState(0);
-  const [toast,      setToast]      = useState(null);
-  const [showUpload, setShowUpload] = useState(false);
+  const [sounds,      setSounds]      = useState(SOUNDS);
+  const [loadingData, setLoadingData] = useState(true);
+  const [query,       setQuery]       = useState("");
+  const [typeFilter,  setTypeFilter]  = useState("All");
+  const [activeCat,   setActiveCat]   = useState(null);
+  const [playingId,   setPlayingId]   = useState(null);
+  const [progress,    setProgress]    = useState(0);
+  const [toast,       setToast]       = useState(null);
+  const [showUpload,  setShowUpload]  = useState(false);
   const rafRef = useRef(null);
+
+  /* Load sounds from Google Sheets on mount */
+  useEffect(() => {
+    if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
+      setLoadingData(false);
+      return;
+    }
+    fetch(APPS_SCRIPT_URL)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.sounds && data.sounds.length > 0) {
+          setSounds(data.sounds.map(normalizeRemoteSound));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingData(false));
+  }, []);
 
   /* Escape closes modal */
   useEffect(() => {
@@ -293,17 +447,48 @@ export default function App() {
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
-  const addSound = useCallback((data) => {
-    const id    = `usr_${Date.now().toString(36)}`;
-    const entry = { id, addedAt: "2026-06-08", ...data };
+  /* addSound — optimistic UI + POST to Apps Script */
+  const addSound = useCallback(async (data) => {
+    const tempId = `tmp_${Date.now().toString(36)}`;
+    const entry  = { id: tempId, addedAt: new Date().toISOString().split("T")[0], ...data };
     setSounds((prev) => [entry, ...prev]);
+
+    if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "text/plain" },
+        body:    JSON.stringify({
+          name:       data.name,
+          type:       data.type,
+          category:   data.category,
+          duration:   data.duration,
+          tags:       data.tags,
+          fileBase64: data.fileBase64 ?? null,
+          fileName:   data.fileName  ?? null,
+          mimeType:   data.mimeType  ?? null,
+        }),
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || "Server error");
+
+      if (result.sound) {
+        setSounds((prev) =>
+          prev.map((s) => s.id === tempId
+            ? { ...s, id: result.sound.id, fileUrl: result.sound.fileUrl }
+            : s
+          )
+        );
+      }
+    }
+
     showToast(`Added "${data.name}" — try searching for it`);
   }, [showToast]);
 
   const downloadSound = useCallback((snd) => {
     const meta = {
       id: snd.id, name: snd.name, type: snd.type, category: snd.category,
-      duration_s: Math.round(snd.duration * 100) / 100, tags: snd.tags, addedAt: snd.addedAt,
+      duration_s: Math.round(snd.duration * 100) / 100,
+      tags: snd.tags, fileUrl: snd.fileUrl ?? null, addedAt: snd.addedAt,
     };
     downloadBlob(`${snd.name.replace(/[^\w]+/g, "_").toLowerCase()}.json`, JSON.stringify(meta, null, 2));
     showToast(`Downloaded metadata for "${snd.name}"`);
@@ -332,8 +517,8 @@ export default function App() {
   const typeTabs = ["All", "Cartoonish", "Realistic"];
 
   return (
+    <PasswordGate>
     <div className="app-root">
-      {/* ambient orbs */}
       <div className="orbs-container">
         <div className="orb orb-blue"  />
         <div className="orb orb-green" />
@@ -342,7 +527,6 @@ export default function App() {
 
       <div className="page-content">
 
-        {/* ── header ── */}
         <header className="header">
           <div className="header-card">
             <img src={logoSrc} alt="Cuddle Buddies DJ" className="header-logo" />
@@ -358,7 +542,9 @@ export default function App() {
             </div>
             <div className="header-actions">
               <div className="sound-count">
-                <div className="sound-count-num">{sounds.length}</div>
+                {loadingData
+                  ? <div className="sound-count-num" style={{ fontSize: 18, opacity: 0.5 }}>…</div>
+                  : <div className="sound-count-num">{sounds.length}</div>}
                 <div className="sound-count-label">sounds in DB</div>
               </div>
               <button onClick={() => setShowUpload(true)} className="upload-trigger-btn"
@@ -371,7 +557,6 @@ export default function App() {
           </div>
         </header>
 
-        {/* ── search + filters ── */}
         <section className="filters-section">
           <div className="search-wrap">
             <SearchIcon size={20} className="search-icon" />
@@ -387,7 +572,6 @@ export default function App() {
             )}
           </div>
 
-          {/* type tabs */}
           <div className="type-tabs">
             {typeTabs.map((t) => {
               const on = typeFilter === t;
@@ -404,7 +588,6 @@ export default function App() {
             })}
           </div>
 
-          {/* category chips */}
           <div className="cat-chips">
             <button onClick={() => setActiveCat(null)} className="cat-chip"
               style={{
@@ -430,7 +613,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* ── results grid ── */}
         <div className="results">
           <div className="results-header">
             <span className="results-meta">
@@ -464,7 +646,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── upload modal ── */}
       {showUpload && (
         <div className="modal-overlay">
           <div className="modal-backdrop anim-fade" onClick={() => setShowUpload(false)} />
@@ -476,7 +657,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ── toast ── */}
       <div className="toast-wrap" style={{ opacity: toast ? 1 : 0, transform: `translate(-50%, ${toast ? 0 : 12}px)` }}>
         {toast && (
           <div className="toast">
@@ -486,5 +666,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </PasswordGate>
   );
 }

@@ -443,10 +443,15 @@ export default function App() {
     if (snd.fileUrl) {
       const match = snd.fileUrl.match(/\/d\/([^/?]+)/);
       if (match) {
-        const audio = new Audio(`https://drive.google.com/uc?export=download&id=${match[1]}`);
+        const fileId = match[1];
+        const audio  = new Audio(`https://drive.google.com/uc?export=download&id=${fileId}`);
         audioRef.current = audio;
         setPlayingId(id); setProgress(0);
-        audio.play().catch(() => {});
+        audio.play().catch(() => {
+          /* CORS fallback — відкрити у новій вкладці */
+          setPlayingId(null); setProgress(0);
+          window.open(`https://drive.google.com/file/d/${fileId}/view`, "_blank");
+        });
         audio.ontimeupdate = () => {
           if (audio.duration) setProgress(audio.currentTime / audio.duration);
         };
@@ -484,7 +489,7 @@ export default function App() {
     setSounds((prev) => [entry, ...prev]);
 
     if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
-      const res = await fetch(APPS_SCRIPT_URL, {
+      const res  = await fetch(APPS_SCRIPT_URL, {
         method:  "POST",
         headers: { "Content-Type": "text/plain" },
         body:    JSON.stringify({
@@ -498,13 +503,19 @@ export default function App() {
           mimeType:   data.mimeType  ?? null,
         }),
       });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error || "Server error");
+      const text = await res.text();
+      let result;
+      try { result = JSON.parse(text); }
+      catch { throw new Error("Відповідь сервера: " + text.slice(0, 120)); }
+
+      if (result.driveError)  throw new Error("Drive: " + result.driveError);
+      if (result.sheetsError) throw new Error("Sheets: " + result.sheetsError);
+      if (!result.success)    throw new Error(result.error || "Невідома помилка");
 
       if (result.sound) {
         setSounds((prev) =>
           prev.map((s) => s.id === tempId
-            ? { ...s, id: result.sound.id, fileUrl: result.sound.fileUrl }
+            ? { ...s, id: result.sound.id, fileUrl: result.sound.fileUrl, fileId: result.sound.fileId }
             : s
           )
         );

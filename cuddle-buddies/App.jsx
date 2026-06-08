@@ -8,7 +8,7 @@ import { SOUNDS, CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
 
 /* ─── Вставте сюди посилання після деплою Apps Script ─── */
-const APPS_SCRIPT_URL = "AKfycby55pl7NJuuFy9k84ar4VVgUGML7To-xu9RAU4lbXjRYGrq4C5MFLNajES0yyqK6EJzGQ";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWZ2ed33oXTpAEJFh0gfC-tJoK-K4pEHGZKdUf1qHOrRPFczuskeifQDHxg3M5bQCH/exec";
 
 /* ─── PasswordGate ─── */
 
@@ -273,7 +273,7 @@ function UploadPanel({ onAdd, onClose }) {
       if (fileRef.current) fileRef.current.value = "";
       onClose?.();
     } catch (err) {
-      setUploadErr("Upload failed. Check your connection and try again.");
+      setUploadErr("Помилка: " + (err?.message || String(err)));
     } finally {
       setUploading(false);
     }

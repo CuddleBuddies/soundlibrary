@@ -397,7 +397,12 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => {
         if (data.sounds && data.sounds.length > 0) {
-          setSounds(data.sounds.map(normalizeRemoteSound));
+          const remote = data.sounds.map(normalizeRemoteSound);
+          setSounds((local) => {
+            const remoteIds = new Set(remote.map((s) => s.id));
+            const kept = local.filter((s) => !remoteIds.has(s.id));
+            return [...remote, ...kept];
+          });
         }
       })
       .catch(() => {})
@@ -418,9 +423,12 @@ export default function App() {
     showToast._t = setTimeout(() => setToast(null), 2600);
   }, []);
 
-  /* playback simulation */
+  /* playback */
+  const audioRef = useRef(null);
+
   const stopPlayback = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setPlayingId(null); setProgress(0);
   }, []);
 
@@ -429,6 +437,25 @@ export default function App() {
     if (playingId === id) { stopPlayback(); return; }
     const snd = sounds.find((s) => s.id === id);
     if (!snd) return;
+
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+
+    if (snd.fileUrl) {
+      const match = snd.fileUrl.match(/\/d\/([^/?]+)/);
+      if (match) {
+        const audio = new Audio(`https://drive.google.com/uc?export=download&id=${match[1]}`);
+        audioRef.current = audio;
+        setPlayingId(id); setProgress(0);
+        audio.play().catch(() => {});
+        audio.ontimeupdate = () => {
+          if (audio.duration) setProgress(audio.currentTime / audio.duration);
+        };
+        audio.onended = () => { setPlayingId(null); setProgress(0); };
+        return;
+      }
+    }
+
+    /* fallback simulation for demo sounds */
     setPlayingId(id); setProgress(0);
     const dur   = Math.min(Math.max(snd.duration, 0.8), 6) * 1000;
     const start = performance.now();
@@ -445,7 +472,10 @@ export default function App() {
     rafRef.current = requestAnimationFrame(tick);
   }, [playingId, sounds, stopPlayback]);
 
-  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
+  useEffect(() => () => {
+    cancelAnimationFrame(rafRef.current);
+    if (audioRef.current) audioRef.current.pause();
+  }, []);
 
   /* addSound — optimistic UI + POST to Apps Script */
   const addSound = useCallback(async (data) => {
@@ -485,10 +515,20 @@ export default function App() {
   }, [showToast]);
 
   const downloadSound = useCallback((snd) => {
+    if (snd.fileUrl) {
+      const match = snd.fileUrl.match(/\/d\/([^/?]+)/);
+      if (match) {
+        window.open(`https://drive.google.com/uc?export=download&id=${match[1]}`, "_blank");
+        showToast(`Завантажується "${snd.name}"…`);
+        return;
+      }
+      window.open(snd.fileUrl, "_blank");
+      return;
+    }
     const meta = {
       id: snd.id, name: snd.name, type: snd.type, category: snd.category,
       duration_s: Math.round(snd.duration * 100) / 100,
-      tags: snd.tags, fileUrl: snd.fileUrl ?? null, addedAt: snd.addedAt,
+      tags: snd.tags, addedAt: snd.addedAt,
     };
     downloadBlob(`${snd.name.replace(/[^\w]+/g, "_").toLowerCase()}.json`, JSON.stringify(meta, null, 2));
     showToast(`Downloaded metadata for "${snd.name}"`);

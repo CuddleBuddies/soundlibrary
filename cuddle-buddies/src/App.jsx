@@ -8,7 +8,7 @@ import { SOUNDS, CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
 
 /* ─── Вставте сюди посилання після деплою Apps Script ─── */
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWZ2ed33oXTpAEJFh0gfC-tJoK-K4pEHGZKdUf1qHOrRPFczuskeifQDHxg3M5bQCH/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfrD4Pc52tAaOKlut_pgXXnrY433lc-g32rMT4kyXZzkDpaWwVgd_PAwbyV16fBKBe/exec";
 
 /* ─── PasswordGate ─── */
 

@@ -8,7 +8,7 @@ import { SOUNDS, CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
 
 /* ─── Вставте сюди посилання після деплою Apps Script ─── */
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTvGdLPbcl2HH5oAsEZN6BwTZOd_TwqNnWpfW3MZC3faMR4r1kAECBW5PB9qzcceCw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW5gnkIO6zlHFs7BHPhlj6q8hdHhppHBESula9YpMspMBX-D8_6aH0Gbd1FSz_DtFd/exec";
 
 /* ─── PasswordGate ─── */
 
@@ -449,25 +449,23 @@ export default function App() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
 
     if (snd.fileUrl) {
-      const match = snd.fileUrl.match(/\/d\/([^/?]+)/);
-      if (match) {
-        const fileId = match[1];
-        const audio  = new Audio(`https://drive.google.com/uc?id=${fileId}&export=download`);
-        audioRef.current = audio;
-        setPlayingId(id); setProgress(0);
-        const onErr = () => {
-          setPlayingId(null); setProgress(0);
-          window.open(`https://drive.google.com/file/d/${fileId}/view`, "_blank");
-          showToast("Відкрито у новій вкладці — браузер блокує пряме відтворення");
-        };
-        audio.addEventListener("error", onErr);
-        audio.play().catch(onErr);
-        audio.ontimeupdate = () => {
-          if (audio.duration) setProgress(audio.currentTime / audio.duration);
-        };
-        audio.onended = () => { setPlayingId(null); setProgress(0); };
-        return;
-      }
+      const audio = new Audio(snd.fileUrl);
+      audioRef.current = audio;
+      setPlayingId(id); setProgress(0);
+      audio.onloadedmetadata = () => {
+        if (audio.duration && !isNaN(audio.duration)) {
+          setSounds(prev => prev.map(s => s.id === id ? { ...s, duration: audio.duration } : s));
+        }
+      };
+      audio.ontimeupdate = () => {
+        if (audio.duration) setProgress(audio.currentTime / audio.duration);
+      };
+      audio.onended = () => { setPlayingId(null); setProgress(0); };
+      audio.play().catch(() => {
+        setPlayingId(null); setProgress(0);
+        showToast("Не вдалось відтворити файл");
+      });
+      return;
     }
 
     /* fallback simulation for demo sounds */
@@ -538,13 +536,12 @@ export default function App() {
 
   const downloadSound = useCallback((snd) => {
     if (snd.fileUrl) {
-      const match = snd.fileUrl.match(/\/d\/([^/?]+)/);
-      if (match) {
-        window.open(`https://drive.google.com/uc?export=download&id=${match[1]}`, "_blank");
-        showToast(`Завантажується "${snd.name}"…`);
-        return;
-      }
-      window.open(snd.fileUrl, "_blank");
+      const a = document.createElement("a");
+      a.href = snd.fileUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast(`Завантажується "${snd.name}"…`);
       return;
     }
     const meta = {

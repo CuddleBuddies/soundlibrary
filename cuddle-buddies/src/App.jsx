@@ -454,6 +454,7 @@ export default function App() {
 
     if (snd.fileUrl) {
       const audio = new Audio(snd.fileUrl);
+      audio.volume = 0.7;
       audioRef.current = audio;
       setPlayingId(id); setProgress(0);
       audio.onloadedmetadata = () => {

@@ -387,7 +387,7 @@ function UploadPanel({ onAdd, onClose }) {
 /* ─── App ─── */
 
 export default function App() {
-  const [sounds,      setSounds]      = useState(SOUNDS);
+  const [sounds,      setSounds]      = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [query,       setQuery]       = useState("");
   const [typeFilter,  setTypeFilter]  = useState("All");
@@ -409,15 +409,11 @@ export default function App() {
       .then((data) => {
         if (data.sounds && data.sounds.length > 0) {
           const remote = data.sounds.map(normalizeRemoteSound).filter(Boolean);
-          if (!remote.length) return;
-          setSounds((local) => {
-            const remoteIds = new Set(remote.map((s) => s.id));
-            const kept = local.filter((s) => !remoteIds.has(s.id));
-            return [...remote, ...kept];
-          });
+          if (remote.length) { setSounds(remote); return; }
         }
+        setSounds(SOUNDS);
       })
-      .catch(() => {})
+      .catch(() => { setSounds(SOUNDS); })
       .finally(() => setLoadingData(false));
   }, []);
 
@@ -454,7 +450,7 @@ export default function App() {
 
     if (snd.fileUrl) {
       const audio = new Audio(snd.fileUrl);
-      audio.volume = 0.5;
+      audio.volume = 0.7;
       audioRef.current = audio;
       setPlayingId(id); setProgress(0);
       audio.onloadedmetadata = () => {
@@ -695,7 +691,12 @@ export default function App() {
             </span>
           </div>
 
-          {filtered.length === 0 ? (
+          {loadingData ? (
+            <div className="empty-state">
+              <div className="empty-icon" style={{ opacity: 0.4, animation: "spin 1s linear infinite" }}><MusicIcon size={26} /></div>
+              <p className="empty-title" style={{ opacity: 0.5 }}>Loading sounds…</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon"><MusicIcon size={26} /></div>
               <p className="empty-title">No sounds match that.</p>

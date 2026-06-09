@@ -255,6 +255,7 @@ function UploadPanel({ onAdd, onClose }) {
 
     setUploading(true);
     setUploadErr(null);
+    console.log("[Upload] Starting upload for:", name);
 
     try {
       const parsedTags = tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
@@ -262,8 +263,10 @@ function UploadPanel({ onAdd, onClose }) {
       let fileBase64 = null;
       let mimeType   = null;
       if (fileObj) {
+        console.log("[Upload] Converting file to base64:", fileObj.name, fileObj.size, "bytes");
         fileBase64 = await fileToBase64(fileObj);
         mimeType   = fileObj.type || "audio/mpeg";
+        console.log("[Upload] Base64 ready, length:", fileBase64.length);
       }
 
       await onAdd({
@@ -280,6 +283,7 @@ function UploadPanel({ onAdd, onClose }) {
       if (fileRef.current) fileRef.current.value = "";
       onClose?.();
     } catch (err) {
+      console.error("[Upload] Error:", err);
       setUploadErr("Помилка: " + (err?.message || String(err)));
     } finally {
       setUploading(false);
@@ -498,21 +502,26 @@ export default function App() {
 
     if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
       try {
+        console.log("[addSound] Sending to Apps Script:", APPS_SCRIPT_URL);
+        const body = JSON.stringify({
+          name:       data.name,
+          type:       data.type,
+          category:   data.category,
+          duration:   data.duration,
+          tags:       data.tags,
+          fileBase64: data.fileBase64 ?? null,
+          fileName:   data.fileName  ?? null,
+          mimeType:   data.mimeType  ?? null,
+        });
+        console.log("[addSound] Body size:", body.length, "chars");
         const res  = await fetch(APPS_SCRIPT_URL, {
           method:  "POST",
           headers: { "Content-Type": "text/plain" },
-          body:    JSON.stringify({
-            name:       data.name,
-            type:       data.type,
-            category:   data.category,
-            duration:   data.duration,
-            tags:       data.tags,
-            fileBase64: data.fileBase64 ?? null,
-            fileName:   data.fileName  ?? null,
-            mimeType:   data.mimeType  ?? null,
-          }),
+          body,
         });
+        console.log("[addSound] Response status:", res.status);
         const text = await res.text();
+        console.log("[addSound] Response text:", text.slice(0, 200));
         try {
           const result = JSON.parse(text);
           if (result.sound) {
@@ -527,6 +536,7 @@ export default function App() {
           /* відповідь не JSON — але дані вже збережено в Drive+Sheets */
         }
       } catch (networkErr) {
+        console.error("[addSound] Network error:", networkErr);
         throw new Error("Мережева помилка: " + networkErr.message);
       }
     }

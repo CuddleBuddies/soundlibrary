@@ -50,10 +50,37 @@ select option { color: #fff; }
 
 /* ── ambient orbs ── */
 .orbs-container { pointer-events: none; position: fixed; inset: 0; overflow: hidden; }
+.orbs-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+}
 .orb { position: absolute; border-radius: 9999px; }
-.orb-blue  { top: -128px; left: -80px; width: 480px; height: 480px; background: #A6B5E9; filter: blur(120px); opacity: .22; }
-.orb-green { top: 33%; right: -96px; width: 520px; height: 520px; background: #7AE0BF; filter: blur(130px); opacity: .18; }
-.orb-teal  { bottom: -160px; left: 33%; width: 560px; height: 560px; background: #84CEE0; filter: blur(140px); opacity: .16; }
+.orb-blue  { top: -128px; left: -80px; width: 480px; height: 480px; background: #A6B5E9; filter: blur(120px); opacity: .22; animation: orbMove1 18s ease-in-out infinite; }
+.orb-green { top: 33%; right: -96px; width: 520px; height: 520px; background: #7AE0BF; filter: blur(130px); opacity: .18; animation: orbMove2 22s ease-in-out infinite; }
+.orb-teal  { bottom: -160px; left: 33%; width: 560px; height: 560px; background: #84CEE0; filter: blur(140px); opacity: .16; animation: orbMove3 26s ease-in-out infinite; }
+
+@keyframes orbMove1 {
+  0%,100% { transform: translate(0, 0); }
+  33%      { transform: translate(80px, 60px); }
+  66%      { transform: translate(-40px, 100px); }
+}
+@keyframes orbMove2 {
+  0%,100% { transform: translate(0, 0); }
+  33%      { transform: translate(-100px, -80px); }
+  66%      { transform: translate(60px, -120px); }
+}
+@keyframes orbMove3 {
+  0%,100% { transform: translate(0, 0); }
+  33%      { transform: translate(70px, -60px); }
+  66%      { transform: translate(-80px, 40px); }
+}
 
 /* ── header ── */
 .header      { padding-top: 32px; }

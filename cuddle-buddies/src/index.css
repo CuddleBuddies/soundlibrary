@@ -103,8 +103,8 @@ select option { color: #fff; }
   filter: drop-shadow(0 8px 24px rgba(0,0,0,.55));
   flex-shrink: 0;
   align-self: flex-end;
-  margin-bottom: -7px;
-  margin-left: -10px;
+  margin-bottom: -12px;
+  margin-left: -32px;
 }
 @media (min-width: 640px) { .header-logo { height: 180px; } }
 

@@ -4,7 +4,7 @@ import {
   MusicIcon, XIcon, HeadphonesIcon, SlidersIcon, ClockIcon,
   CheckIcon, SparklesIcon, FileIcon, ChevronDownIcon,
 } from "./icons";
-import { SOUNDS, CATEGORIES, makeWave } from "./data";
+import { SOUNDS, CATEGORIES, CATEGORY_TREE, MAIN_CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
 
 /* ─── Вставте сюди посилання після деплою Apps Script ─── */
@@ -173,7 +173,7 @@ function Waveform({ wave, progress = 0, active = false }) {
 
 /* ─── SoundCard ─── */
 
-function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete }) {
+function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, onTagClick }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const tm = TYPE_META[sound.type] ?? TYPE_META.Cartoonish;
   return (
@@ -238,7 +238,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete })
               <ClockIcon size={13} /> {fmtDur(sound.duration)}
             </span>
             {sound.tags.slice(0, 4).map((t) => (
-              <span key={t} className="tag-chip">#{t}</span>
+              <button key={t} className="tag-chip tag-chip-btn" onClick={() => onTagClick(t)}>#{t}</button>
             ))}
           </div>
         </div>
@@ -259,17 +259,18 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete })
 /* ─── UploadPanel ─── */
 
 function UploadPanel({ onAdd, onClose }) {
-  const [fileObj,    setFileObj]    = useState(null);
-  const [fileName,   setFileName]   = useState(null);
-  const [name,       setName]       = useState("");
-  const [tags,       setTags]       = useState("");
-  const [type,       setType]       = useState("Cartoonish");
-  const [category,   setCategory]   = useState(CATEGORIES[0]);
-  const [uploading,  setUploading]  = useState(false);
-  const [uploadErr,  setUploadErr]  = useState(null);
+  const [fileObj,   setFileObj]   = useState(null);
+  const [fileName,  setFileName]  = useState(null);
+  const [name,      setName]      = useState("");
+  const [tags,      setTags]      = useState("");
+  const [type,      setType]      = useState("Cartoonish");
+  const [mainCat,   setMainCat]   = useState("");
+  const [subCat,    setSubCat]    = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState(null);
   const fileRef = useRef(null);
 
-  const canSubmit = name.trim().length > 0 && !uploading;
+  const canSubmit = name.trim().length > 0 && mainCat && !uploading;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -293,7 +294,8 @@ function UploadPanel({ onAdd, onClose }) {
 
       await onAdd({
         name:     name.trim(),
-        type,     category,
+        type,
+        category: subCat || mainCat,
         duration: 1 + Math.random() * 3,
         tags:     parsedTags.length ? parsedTags : ["uploaded"],
         wave:     makeWave(name + Date.now()),
@@ -301,7 +303,7 @@ function UploadPanel({ onAdd, onClose }) {
       });
 
       setName(""); setTags(""); setFileObj(null); setFileName(null);
-      setType("Cartoonish"); setCategory(CATEGORIES[0]);
+      setType("Cartoonish"); setMainCat(""); setSubCat("");
       if (fileRef.current) fileRef.current.value = "";
       onClose?.();
     } catch (err) {
@@ -324,7 +326,7 @@ function UploadPanel({ onAdd, onClose }) {
         </div>
         <div>
           <h2 className="upload-title">Drop a new sound</h2>
-          <p className="upload-subtitle">Saves the file to Google Drive and adds it to the library.</p>
+          <p className="upload-subtitle">Upload to Cloudinary and add to the library.</p>
         </div>
       </div>
 
@@ -335,7 +337,7 @@ function UploadPanel({ onAdd, onClose }) {
             <span className="file-pick-icon"><FileIcon size={18} /></span>
             <span className="file-pick-text">
               <span className="file-pick-name">{fileName ?? "Choose an audio file"}</span>
-              <span className="file-pick-hint">{fileName ? "Ready to upload" : "WAV, MP3, OGG"}</span>
+              <span className="file-pick-hint">{fileName ? "Ready to upload" : "WAV, MP3, M4A, OGG"}</span>
             </span>
           </button>
           <input
@@ -348,17 +350,33 @@ function UploadPanel({ onAdd, onClose }) {
           />
         </div>
 
+        <div>
+          <label className="form-label">Sound name</label>
+          <input className="form-input" value={name} onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Wobbly Jelly Drop" />
+        </div>
+
         <div className="form-grid2">
           <div>
-            <label className="form-label">Sound name</label>
-            <input className="form-input" value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Wobbly Jelly Drop" />
+            <label className="form-label">Category <span style={{ color: "#ff6b6b" }}>*</span></label>
+            <div className="select-wrap">
+              <select className="form-input form-select" value={mainCat}
+                onChange={(e) => { setMainCat(e.target.value); setSubCat(""); }}>
+                <option value="" style={{ background: "#1c1b3a" }}>Select category…</option>
+                {MAIN_CATEGORIES.map((m) => <option key={m} value={m} style={{ background: "#1c1b3a" }}>{m}</option>)}
+              </select>
+              <ChevronDownIcon size={16} className="select-chevron" />
+            </div>
           </div>
           <div>
-            <label className="form-label">Category</label>
+            <label className="form-label">Subcategory <span style={{ color: "rgba(255,255,255,.3)", fontSize: 11 }}>(optional)</span></label>
             <div className="select-wrap">
-              <select className="form-input form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
-                {CATEGORIES.map((c) => <option key={c} value={c} style={{ background: "#1c1b3a" }}>{c}</option>)}
+              <select className="form-input form-select" value={subCat} onChange={(e) => setSubCat(e.target.value)}
+                disabled={!mainCat} style={{ opacity: mainCat ? 1 : 0.4 }}>
+                <option value="" style={{ background: "#1c1b3a" }}>No subcategory</option>
+                {mainCat && CATEGORY_TREE[mainCat].map((sc) =>
+                  <option key={sc} value={sc} style={{ background: "#1c1b3a" }}>{sc}</option>
+                )}
               </select>
               <ChevronDownIcon size={16} className="select-chevron" />
             </div>
@@ -409,11 +427,12 @@ function UploadPanel({ onAdd, onClose }) {
 /* ─── App ─── */
 
 export default function App() {
-  const [sounds,      setSounds]      = useState([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [query,       setQuery]       = useState("");
-  const [typeFilter,  setTypeFilter]  = useState("All");
-  const [activeCat,   setActiveCat]   = useState(null);
+  const [sounds,        setSounds]        = useState([]);
+  const [loadingData,   setLoadingData]   = useState(true);
+  const [query,         setQuery]         = useState("");
+  const [typeFilter,    setTypeFilter]    = useState("All");
+  const [activeMainCat, setActiveMainCat] = useState(null);
+  const [activeSubCat,  setActiveSubCat]  = useState(null);
   const [playingId,   setPlayingId]   = useState(null);
   const [progress,    setProgress]    = useState(0);
   const [toast,       setToast]       = useState(null);
@@ -621,19 +640,34 @@ export default function App() {
     const q = query.trim().toLowerCase();
     return sounds.filter((s) => {
       if (typeFilter !== "All" && s.type !== typeFilter) return false;
-      if (activeCat && s.category !== activeCat) return false;
+      if (activeSubCat) {
+        if (s.category !== activeSubCat) return false;
+      } else if (activeMainCat) {
+        const subs = CATEGORY_TREE[activeMainCat];
+        if (s.category !== activeMainCat && !subs.includes(s.category)) return false;
+      }
       if (q) {
         const hay = `${s.name} ${s.tags.join(" ")} ${s.category} ${s.type}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [sounds, query, typeFilter, activeCat]);
+  }, [sounds, query, typeFilter, activeMainCat, activeSubCat]);
 
   const catCounts = useMemo(() => {
-    const m = {}; CATEGORIES.forEach((c) => (m[c] = 0));
-    sounds.forEach((s) => { if (m[s.category] != null) m[s.category]++; });
-    return m;
+    const main = {}; MAIN_CATEGORIES.forEach((m) => (main[m] = 0));
+    const sub  = {}; CATEGORIES.forEach((c) => (sub[c] = 0));
+    sounds.forEach((s) => {
+      if (sub[s.category] != null) {
+        sub[s.category]++;
+        for (const [m, subs] of Object.entries(CATEGORY_TREE)) {
+          if (subs.includes(s.category)) { main[m]++; break; }
+        }
+      } else if (main[s.category] != null) {
+        main[s.category]++;
+      }
+    });
+    return { main, sub };
   }, [sounds]);
 
   const typeTabs = ["All", "Cartoonish", "Realistic"];
@@ -726,28 +760,47 @@ export default function App() {
           </div>
 
           <div className="cat-chips">
-            <button onClick={() => setActiveCat(null)} className="cat-chip"
+            <button onClick={() => { setActiveMainCat(null); setActiveSubCat(null); }} className="cat-chip"
               style={{
-                borderColor: !activeCat ? "rgba(122,224,191,0.6)"  : "rgba(255,255,255,0.14)",
-                background:  !activeCat ? "rgba(122,224,191,0.16)" : "rgba(255,255,255,0.04)",
-                color:       !activeCat ? "#7AE0BF" : "rgba(255,255,255,0.7)",
+                borderColor: !activeMainCat ? "rgba(122,224,191,0.6)"  : "rgba(255,255,255,0.14)",
+                background:  !activeMainCat ? "rgba(122,224,191,0.16)" : "rgba(255,255,255,0.04)",
+                color:       !activeMainCat ? "#7AE0BF" : "rgba(255,255,255,0.7)",
               }}>
               <SparklesIcon size={13} /> All categories
             </button>
-            {CATEGORIES.map((c) => {
-              const on = activeCat === c;
+            {MAIN_CATEGORIES.map((m) => {
+              const on = activeMainCat === m;
               return (
-                <button key={c} onClick={() => setActiveCat(on ? null : c)} className="cat-chip"
+                <button key={m} onClick={() => { setActiveMainCat(on ? null : m); setActiveSubCat(null); }} className="cat-chip"
                   style={{
                     borderColor: on ? "rgba(166,181,233,0.65)" : "rgba(255,255,255,0.14)",
                     background:  on ? "rgba(166,181,233,0.18)" : "rgba(255,255,255,0.04)",
                     color:       on ? "#A6B5E9" : "rgba(255,255,255,0.72)",
                   }}>
-                  {c} <span className="cat-count">{catCounts[c]}</span>
+                  {m} <span className="cat-count">{catCounts.main[m]}</span>
                 </button>
               );
             })}
           </div>
+
+          {activeMainCat && (
+            <div className="subcat-chips anim-pop">
+              {CATEGORY_TREE[activeMainCat].map((sc) => {
+                const on = activeSubCat === sc;
+                return (
+                  <button key={sc} onClick={() => setActiveSubCat(on ? null : sc)} className="cat-chip subcat-chip"
+                    style={{
+                      borderColor: on ? "rgba(247,203,7,0.55)" : "rgba(255,255,255,0.1)",
+                      background:  on ? "rgba(247,203,7,0.12)" : "rgba(255,255,255,0.03)",
+                      color:       on ? "#F7CB07" : "rgba(255,255,255,0.55)",
+                      fontSize: 11.5,
+                    }}>
+                    {sc} <span className="cat-count">{catCounts.sub[sc] ?? 0}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <div className="results">
@@ -781,6 +834,7 @@ export default function App() {
                   isPlaying={playingId === s.id}
                   progress={playingId === s.id ? progress : 0}
                   onPlay={playSound} onDownload={downloadSound} onDelete={deleteSound}
+                  onTagClick={(tag) => setQuery(tag)}
                 />
               ))}
             </div>

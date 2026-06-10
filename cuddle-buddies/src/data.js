@@ -1,5 +1,5 @@
 export const CATEGORY_TREE = {
-  "Animal Sounds": ["Cats", "Dogs", "Parrots", "Raccoons", "Pigs", "Donkeys", "Horses", "Goats", "Sheep", "Ducks", "Geese", "Other animals"],
+  "Animal Sounds": ["Cat", "Dog", "Parrot", "Raccoon", "Pig", "Donkey", "Horse", "Goat", "Sheep", "Duck", "Goose", "Other animal"],
   "Ambience":      ["Outdoors", "Indoors", "Street Noises", "Nature / Weather"],
   "SFX":           ["UI sounds", "Transitions", "Impacts", "Cartoon sounds"],
 };

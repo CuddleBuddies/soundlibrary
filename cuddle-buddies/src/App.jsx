@@ -263,7 +263,6 @@ function UploadPanel({ onAdd, onClose }) {
   const [fileName,  setFileName]  = useState(null);
   const [name,      setName]      = useState("");
   const [tags,      setTags]      = useState("");
-  const [type,      setType]      = useState("Cartoonish");
   const [mainCat,   setMainCat]   = useState("");
   const [subCat,    setSubCat]    = useState("");
   const [uploading, setUploading] = useState(false);
@@ -294,7 +293,7 @@ function UploadPanel({ onAdd, onClose }) {
 
       await onAdd({
         name:     name.trim(),
-        type,
+        type:     "Realistic",
         category: subCat || mainCat,
         duration: 1 + Math.random() * 3,
         tags:     parsedTags.length ? parsedTags : ["uploaded"],
@@ -303,7 +302,7 @@ function UploadPanel({ onAdd, onClose }) {
       });
 
       setName(""); setTags(""); setFileObj(null); setFileName(null);
-      setType("Cartoonish"); setMainCat(""); setSubCat("");
+      setMainCat(""); setSubCat("");
       if (fileRef.current) fileRef.current.value = "";
       onClose?.();
     } catch (err) {
@@ -389,25 +388,6 @@ function UploadPanel({ onAdd, onClose }) {
             placeholder="funny, jump, retro" />
         </div>
 
-        <div>
-          <label className="form-label">Type</label>
-          <div className="type-toggle">
-            {["Realistic", "Cartoonish"].map((t) => {
-              const on = type === t;
-              return (
-                <button key={t} type="button" onClick={() => setType(t)} className="type-toggle-btn"
-                  style={{
-                    background: on ? "#F7CB07" : "transparent",
-                    color: on ? "#1a1730" : "rgba(255,255,255,0.7)",
-                    boxShadow: on ? "0 4px 14px -4px rgba(247,203,7,0.6)" : "none",
-                  }}>
-                  <span className="type-toggle-dot" style={{ background: on ? "#1a1730" : TYPE_META[t].dot }} />
-                  {t}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {uploadErr && (
           <p style={{ color: "#ff6b6b", fontSize: 12, margin: 0, textAlign: "center" }}>{uploadErr}</p>
@@ -430,7 +410,6 @@ export default function App() {
   const [sounds,        setSounds]        = useState([]);
   const [loadingData,   setLoadingData]   = useState(true);
   const [query,         setQuery]         = useState("");
-  const [typeFilter,    setTypeFilter]    = useState("All");
   const [activeMainCat, setActiveMainCat] = useState(null);
   const [activeSubCat,  setActiveSubCat]  = useState(null);
   const [playingId,   setPlayingId]   = useState(null);
@@ -639,7 +618,6 @@ export default function App() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return sounds.filter((s) => {
-      if (typeFilter !== "All" && s.type !== typeFilter) return false;
       if (activeSubCat) {
         if (s.category !== activeSubCat) return false;
       } else if (activeMainCat) {
@@ -652,7 +630,7 @@ export default function App() {
       }
       return true;
     });
-  }, [sounds, query, typeFilter, activeMainCat, activeSubCat]);
+  }, [sounds, query, activeMainCat, activeSubCat]);
 
   const catCounts = useMemo(() => {
     const main = {}; MAIN_CATEGORIES.forEach((m) => (main[m] = 0));
@@ -733,54 +711,31 @@ export default function App() {
               <button
                 className="type-dropdown-btn"
                 onClick={() => setShowTypeDrop((v) => !v)}
-                style={{ background: typeFilter !== "All" ? "#F7CB07" : undefined, color: typeFilter !== "All" ? "#1a1730" : undefined }}
+                style={{ background: activeMainCat ? "#F7CB07" : undefined, color: activeMainCat ? "#1a1730" : undefined }}
               >
-                {typeFilter !== "All" && (
-                  <span className="type-dot" style={{ background: TYPE_META[typeFilter]?.dot, width: 7, height: 7, borderRadius: "50%", display: "inline-block" }} />
-                )}
-                {typeFilter}
+                {activeMainCat ?? "All"}
                 <ChevronDownIcon size={14} style={{ transition: "transform .2s", transform: showTypeDrop ? "rotate(180deg)" : "none" }} />
               </button>
               {showTypeDrop && (
                 <div className="type-dropdown-menu anim-pop">
-                  {typeTabs.map((t) => {
-                    const on = typeFilter === t;
+                  <button className="type-dropdown-item"
+                    style={{ color: !activeMainCat ? "#F7CB07" : undefined, fontWeight: !activeMainCat ? 600 : undefined }}
+                    onClick={() => { setActiveMainCat(null); setActiveSubCat(null); setShowTypeDrop(false); }}>
+                    All
+                  </button>
+                  {MAIN_CATEGORIES.map((m) => {
+                    const on = activeMainCat === m;
                     return (
-                      <button key={t} className="type-dropdown-item"
+                      <button key={m} className="type-dropdown-item"
                         style={{ color: on ? "#F7CB07" : undefined, fontWeight: on ? 600 : undefined }}
-                        onClick={() => { setTypeFilter(t); setShowTypeDrop(false); }}>
-                        {t !== "All" && <span className="type-dot" style={{ background: TYPE_META[t]?.dot, width: 7, height: 7, borderRadius: "50%", display: "inline-block" }} />}
-                        {t}
+                        onClick={() => { setActiveMainCat(m); setActiveSubCat(null); setShowTypeDrop(false); }}>
+                        {m}
                       </button>
                     );
                   })}
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="cat-chips">
-            <button onClick={() => { setActiveMainCat(null); setActiveSubCat(null); }} className="cat-chip"
-              style={{
-                borderColor: !activeMainCat ? "rgba(122,224,191,0.6)"  : "rgba(255,255,255,0.14)",
-                background:  !activeMainCat ? "rgba(122,224,191,0.16)" : "rgba(255,255,255,0.04)",
-                color:       !activeMainCat ? "#7AE0BF" : "rgba(255,255,255,0.7)",
-              }}>
-              <SparklesIcon size={13} /> All categories
-            </button>
-            {MAIN_CATEGORIES.map((m) => {
-              const on = activeMainCat === m;
-              return (
-                <button key={m} onClick={() => { setActiveMainCat(on ? null : m); setActiveSubCat(null); }} className="cat-chip"
-                  style={{
-                    borderColor: on ? "rgba(166,181,233,0.65)" : "rgba(255,255,255,0.14)",
-                    background:  on ? "rgba(166,181,233,0.18)" : "rgba(255,255,255,0.04)",
-                    color:       on ? "#A6B5E9" : "rgba(255,255,255,0.72)",
-                  }}>
-                  {m} <span className="cat-count">{catCounts.main[m]}</span>
-                </button>
-              );
-            })}
           </div>
 
           {activeMainCat && (

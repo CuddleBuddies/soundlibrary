@@ -242,16 +242,16 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete })
             ))}
           </div>
         </div>
-
-        <button
-          onClick={() => onDownload(sound)}
-          className="dl-btn"
-          aria-label={`Download ${sound.name}`}
-          title="Download"
-        >
-          <DownloadIcon size={18} />
-        </button>
       </div>
+
+      <button
+        onClick={() => onDownload(sound)}
+        className="dl-btn"
+        aria-label={`Download ${sound.name}`}
+        title="Download"
+      >
+        <DownloadIcon size={18} />
+      </button>
     </div>
   );
 }
@@ -417,8 +417,19 @@ export default function App() {
   const [playingId,   setPlayingId]   = useState(null);
   const [progress,    setProgress]    = useState(0);
   const [toast,       setToast]       = useState(null);
-  const [showUpload,  setShowUpload]  = useState(false);
+  const [showUpload,      setShowUpload]      = useState(false);
+  const [showTypeDrop,    setShowTypeDrop]    = useState(false);
+  const typeDropRef = useRef(null);
   const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!showTypeDrop) return;
+    const handler = (e) => {
+      if (typeDropRef.current && !typeDropRef.current.contains(e.target)) setShowTypeDrop(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showTypeDrop]);
 
   /* Load sounds from Google Sheets on mount */
   useEffect(() => {
@@ -578,14 +589,22 @@ export default function App() {
     }
   }, [playingId, stopPlayback, showToast]);
 
-  const downloadSound = useCallback((snd) => {
+  const downloadSound = useCallback(async (snd) => {
     if (snd.fileUrl) {
-      const a = document.createElement("a");
-      a.href = snd.fileUrl;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a); a.click(); a.remove();
-      showToast(`Завантажується "${snd.name}"…`);
+      try {
+        showToast(`Downloading "${snd.name}"…`);
+        const res  = await fetch(snd.fileUrl);
+        const blob = await res.blob();
+        const ext  = snd.fileUrl.split(".").pop().split("?")[0].toLowerCase() || "mp3";
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href = url;
+        a.download = `${snd.name.replace(/[^\w]+/g, "_").toLowerCase()}.${ext}`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } catch {
+        window.open(snd.fileUrl, "_blank");
+      }
       return;
     }
     const meta = {
@@ -594,7 +613,7 @@ export default function App() {
       tags: snd.tags, addedAt: snd.addedAt,
     };
     downloadBlob(`${snd.name.replace(/[^\w]+/g, "_").toLowerCase()}.json`, JSON.stringify(meta, null, 2));
-    showToast(`Downloaded metadata for "${snd.name}"`);
+    showToast(`Downloaded "${snd.name}"`);
   }, [showToast]);
 
   /* filtering */
@@ -661,34 +680,49 @@ export default function App() {
         </header>
 
         <section className="filters-section">
-          <div className="search-wrap">
-            <SearchIcon size={20} className="search-icon" />
-            <input
-              value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder='Search "cartoon jump sound", a tag, or a vibe…'
-              className="search-input"
-            />
-            {query && (
-              <button onClick={() => setQuery("")} className="search-clear" aria-label="Clear search">
-                <XIcon size={18} />
-              </button>
-            )}
-          </div>
-
-          <div className="type-tabs">
-            {typeTabs.map((t) => {
-              const on = typeFilter === t;
-              return (
-                <button key={t} onClick={() => setTypeFilter(t)} className="type-tab"
-                  style={{
-                    background: on ? "#F7CB07" : "transparent",
-                    color: on ? "#1a1730" : "rgba(255,255,255,0.72)",
-                    boxShadow: on ? "0 6px 18px -6px rgba(247,203,7,0.6)" : "none",
-                  }}>
-                  {t}
+          <div className="search-row">
+            <div className="search-wrap">
+              <SearchIcon size={20} className="search-icon" />
+              <input
+                value={query} onChange={(e) => setQuery(e.target.value)}
+                placeholder='Search "cartoon jump sound", a tag, or a vibe…'
+                className="search-input"
+              />
+              {query && (
+                <button onClick={() => setQuery("")} className="search-clear" aria-label="Clear search">
+                  <XIcon size={18} />
                 </button>
-              );
-            })}
+              )}
+            </div>
+
+            <div className="type-dropdown" ref={typeDropRef}>
+              <button
+                className="type-dropdown-btn"
+                onClick={() => setShowTypeDrop((v) => !v)}
+                style={{ background: typeFilter !== "All" ? "#F7CB07" : undefined, color: typeFilter !== "All" ? "#1a1730" : undefined }}
+              >
+                {typeFilter !== "All" && (
+                  <span className="type-dot" style={{ background: TYPE_META[typeFilter]?.dot, width: 7, height: 7, borderRadius: "50%", display: "inline-block" }} />
+                )}
+                {typeFilter}
+                <ChevronDownIcon size={14} style={{ transition: "transform .2s", transform: showTypeDrop ? "rotate(180deg)" : "none" }} />
+              </button>
+              {showTypeDrop && (
+                <div className="type-dropdown-menu anim-pop">
+                  {typeTabs.map((t) => {
+                    const on = typeFilter === t;
+                    return (
+                      <button key={t} className="type-dropdown-item"
+                        style={{ color: on ? "#F7CB07" : undefined, fontWeight: on ? 600 : undefined }}
+                        onClick={() => { setTypeFilter(t); setShowTypeDrop(false); }}>
+                        {t !== "All" && <span className="type-dot" style={{ background: TYPE_META[t]?.dot, width: 7, height: 7, borderRadius: "50%", display: "inline-block" }} />}
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="cat-chips">

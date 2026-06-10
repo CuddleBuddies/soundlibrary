@@ -173,17 +173,39 @@ function Waveform({ wave, progress = 0, active = false }) {
 
 /* ─── SoundCard ─── */
 
-function SoundCard({ sound, isPlaying, progress, onPlay, onDownload }) {
+function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete }) {
+  const [confirmDel, setConfirmDel] = useState(false);
   const tm = TYPE_META[sound.type] ?? TYPE_META.Cartoonish;
   return (
     <div
       className="sound-card"
       style={{
+        position: "relative",
         boxShadow: isPlaying
           ? "0 0 0 1px rgba(247,203,7,0.5), 0 12px 40px -12px rgba(247,203,7,0.35)"
           : "0 8px 30px -16px rgba(0,0,0,0.6)",
       }}
     >
+      <button
+        className="card-delete-btn"
+        onClick={() => setConfirmDel(true)}
+        aria-label="Delete sound"
+        title="Delete"
+      >
+        <XIcon size={11} />
+      </button>
+
+      {confirmDel && (
+        <div className="card-delete-confirm anim-fade">
+          <p className="card-del-question">Delete "{sound.name}"?</p>
+          <p className="card-del-sub">This cannot be undone.</p>
+          <div className="card-delete-actions">
+            <button onClick={() => setConfirmDel(false)} className="del-cancel-btn">Cancel</button>
+            <button onClick={() => { onDelete(sound.id); setConfirmDel(false); }} className="del-confirm-btn">Delete</button>
+          </div>
+        </div>
+      )}
+
       <div className="sound-card-row">
         <button
           onClick={() => onPlay(sound.id)}
@@ -224,8 +246,8 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload }) {
         <button
           onClick={() => onDownload(sound)}
           className="dl-btn"
-          aria-label={`Download ${sound.name} metadata`}
-          title="Download metadata"
+          aria-label={`Download ${sound.name}`}
+          title="Download"
         >
           <DownloadIcon size={18} />
         </button>
@@ -450,7 +472,7 @@ export default function App() {
 
     if (snd.fileUrl) {
       const audio = new Audio(snd.fileUrl);
-      audio.volume = 0.7;
+      audio.volume = 0.3;
       audioRef.current = audio;
       setPlayingId(id); setProgress(0);
       audio.onloadedmetadata = () => {
@@ -541,6 +563,21 @@ export default function App() {
     showToast(`Added "${data.name}" — try searching for it`);
   }, [showToast]);
 
+  const deleteSound = useCallback(async (id) => {
+    if (playingId === id) stopPlayback();
+    setSounds((prev) => prev.filter((s) => s.id !== id));
+    showToast("Sound deleted");
+    if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "delete", id }),
+        });
+      } catch { /* silent */ }
+    }
+  }, [playingId, stopPlayback, showToast]);
+
   const downloadSound = useCallback((snd) => {
     if (snd.fileUrl) {
       const a = document.createElement("a");
@@ -601,9 +638,9 @@ export default function App() {
                 <HeadphonesIcon size={14} /> Internal Sound Library
               </div>
               <h1 className="header-title">
-                <span className="header-title-gradient">The Great Cuddle Buddies</span>
-                <br className="header-title-break" />
-                <span className="header-title-plain"> Library of Sounds</span>
+                <span className="header-title-gradient">Cuddle Buddies</span>
+                <br />
+                <span className="header-title-plain">The Great Library of Sounds</span>
               </h1>
             </div>
             <div className="header-actions">
@@ -709,7 +746,7 @@ export default function App() {
                   key={s.id} sound={s}
                   isPlaying={playingId === s.id}
                   progress={playingId === s.id ? progress : 0}
-                  onPlay={playSound} onDownload={downloadSound}
+                  onPlay={playSound} onDownload={downloadSound} onDelete={deleteSound}
                 />
               ))}
             </div>

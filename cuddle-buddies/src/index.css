@@ -104,11 +104,12 @@ select option { color: #fff; }
   flex-shrink: 0;
   align-self: flex-end;
   margin-bottom: -14px;
-  margin-left: -52px;
+  margin-left: -60px;
 }
 @media (min-width: 640px) { .header-logo { height: 180px; } }
 
-.header-text   { min-width: 0; flex: 1; padding: 28px 0; }
+.header-text    { min-width: 0; flex: 1; padding: 28px 0; align-self: center; }
+.header-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; align-self: center; }
 .header-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -132,7 +133,6 @@ select option { color: #fff; }
 .header-title-break { display: none; }
 @media (min-width: 640px) { .header-title-break { display: block; } }
 
-.header-actions  { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
 @media (min-width: 640px) { .header-actions { gap: 20px; } }
 .sound-count     { text-align: right; }
 .sound-count-num { font-size: 30px; font-weight: 800; line-height: 1; color: #F7CB07; }

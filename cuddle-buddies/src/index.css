@@ -54,7 +54,7 @@ select option { color: #fff; }
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255,255,255,.12) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
@@ -289,6 +289,57 @@ select option { color: #fff; }
 .sound-meta-row { margin-top: 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .dur-label   { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(255,255,255,.55); margin-right: 4px; }
 .tag-chip    { font-size: 11px; color: #A6B5E9; background: rgba(166,181,233,.1); border: 1px solid rgba(166,181,233,.2); border-radius: 6px; padding: 2px 6px; }
+
+.card-delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.35);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, background .15s, color .15s, border-color .15s;
+  font-family: inherit;
+  z-index: 2;
+}
+.sound-card:hover .card-delete-btn { opacity: 1; }
+.card-delete-btn:hover { background: rgba(255,80,80,.18); border-color: rgba(255,80,80,.45); color: #ff6b6b; }
+
+.card-delete-confirm {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: rgba(12,10,28,.93);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 10;
+  padding: 20px;
+}
+.card-del-question { color: #fff; font-size: 14px; font-weight: 600; margin: 0; text-align: center; }
+.card-del-sub      { color: rgba(255,255,255,.4); font-size: 11px; margin: 0; }
+.card-delete-actions { display: flex; gap: 8px; margin-top: 4px; }
+.del-cancel-btn {
+  padding: 7px 16px; border-radius: 9px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); color: rgba(255,255,255,.8);
+  transition: background .15s;
+}
+.del-cancel-btn:hover { background: rgba(255,255,255,.14); }
+.del-confirm-btn {
+  padding: 7px 16px; border-radius: 9px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  background: rgba(255,60,60,.18); border: 1px solid rgba(255,80,80,.4); color: #ff6b6b;
+  transition: background .15s;
+}
+.del-confirm-btn:hover { background: rgba(255,60,60,.3); }
 
 .dl-btn {
   flex-shrink: 0;

@@ -1,7 +1,7 @@
 export const CATEGORY_TREE = {
   "Animal Sounds": ["Cat", "Dog", "Parrot", "Raccoon", "Pig", "Donkey", "Horse", "Goat", "Sheep", "Duck", "Goose", "Other animal"],
   "Ambience":      ["Outdoors", "Indoors", "Street Noises", "Nature / Weather"],
-  "SFX":           ["UI sounds", "Transitions", "Impacts", "Cartoon sounds"],
+  "SFX":           ["UI sounds", "Transitions", "Impacts", "Cartoonish"],
 };
 
 export const MAIN_CATEGORIES = Object.keys(CATEGORY_TREE);
@@ -24,7 +24,7 @@ const RAW_SOUNDS = [
   { name: "Capy Boing Bounce",   type: "Cartoonish", category: "Impacts",        duration: 1.2,  tags: ["boing","bounce","funny","spring"] },
   { name: "Retro Coin Pickup",   type: "Cartoonish", category: "UI sounds",      duration: 0.8,  tags: ["coin","retro","8bit","reward"] },
   { name: "Soft Page Swipe",     type: "Realistic",  category: "Transitions",    duration: 0.6,  tags: ["swipe","page","subtle","ui"] },
-  { name: "Cartoon Jump Hop",    type: "Cartoonish", category: "Cartoon sounds", duration: 0.9,  tags: ["jump","hop","cartoon","spring"] },
+  { name: "Cartoon Jump Hop",    type: "Cartoonish", category: "Cartoonish",    duration: 0.9,  tags: ["jump","hop","cartoon","spring"] },
   { name: "Thunder Crack Hit",   type: "Realistic",  category: "Impacts",        duration: 2.4,  tags: ["thunder","impact","boom","storm"] },
   { name: "Bubble Pop Combo",    type: "Cartoonish", category: "UI sounds",      duration: 0.5,  tags: ["pop","bubble","click","cute"] },
   { name: "Cozy Rain Loop",      type: "Realistic",  category: "Nature / Weather", duration: 12.0, tags: ["rain","ambient","loop","calm"] },

@@ -111,9 +111,27 @@ const fmtDur = (s) => {
   return `0:${String(Math.round(s)).padStart(2, "0")}`;
 };
 
-const TYPE_META = {
-  Cartoonish: { dot: "#F7CB07",  label: "Cartoonish" },
-  Realistic:  { dot: "#84CEE0", label: "Realistic"  },
+const CAT_COLORS = {
+  "Animal Sounds": "#7AE0BF",
+  "Ambience":      "#84CEE0",
+  "SFX":           "#F7CB07",
+};
+
+/* maps old/legacy category values to new ones */
+const LEGACY_CAT_MAP = {
+  "Ambient": "Ambience", "Meme": "Cartoonish", "Whoosh": "SFX",
+  "UI": "UI sounds", "Cartoon sounds": "Cartoonish",
+  "Cats": "Cat", "Dogs": "Dog", "Parrots": "Parrot",
+  "Raccoons": "Raccoon", "Pigs": "Pig", "Donkeys": "Donkey",
+  "Horses": "Horse", "Goats": "Goat", "Ducks": "Duck",
+  "Geese": "Goose", "Other animals": "Other animal",
+};
+
+const findMainCat = (cat) => {
+  for (const [main, subs] of Object.entries(CATEGORY_TREE)) {
+    if (subs.includes(cat)) return main;
+  }
+  return MAIN_CATEGORIES.includes(cat) ? cat : null;
 };
 
 const downloadBlob = (filename, text, mime = "application/json") => {
@@ -134,11 +152,12 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
 
 const normalizeRemoteSound = (s) => {
   try {
+    const rawCat  = String(s.category || "SFX");
+    const category = LEGACY_CAT_MAP[rawCat] ?? rawCat;
     return {
       ...s,
-      name:     String(s.name     || "Unknown Sound"),
-      type:     String(s.type     || "Cartoonish"),
-      category: String(s.category || "UI"),
+      name:     String(s.name || "Unknown Sound"),
+      category,
       duration: parseFloat(s.duration) || 1,
       tags: typeof s.tags === "string"
         ? s.tags.split(",").map((t) => t.trim()).filter(Boolean)
@@ -175,7 +194,8 @@ function Waveform({ wave, progress = 0, active = false }) {
 
 function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, onTagClick }) {
   const [confirmDel, setConfirmDel] = useState(false);
-  const tm = TYPE_META[sound.type] ?? TYPE_META.Cartoonish;
+  const mainCat  = findMainCat(sound.category);
+  const catColor = CAT_COLORS[mainCat] ?? "rgba(255,255,255,.4)";
   return (
     <div
       className="sound-card"
@@ -226,8 +246,8 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, o
           <div className="sound-title-row">
             <h3 className="sound-name">{sound.name}</h3>
             <span className="type-badge">
-              <span className="type-dot" style={{ background: tm.dot, boxShadow: `0 0 6px ${tm.dot}` }} />
-              {tm.label}
+              <span className="type-dot" style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }} />
+              {sound.category}
             </span>
           </div>
           <div className="wave-wrap">
@@ -647,8 +667,6 @@ export default function App() {
     });
     return { main, sub };
   }, [sounds]);
-
-  const typeTabs = ["All", "Cartoonish", "Realistic"];
 
   return (
     <PasswordGate>

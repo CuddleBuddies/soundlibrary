@@ -54,14 +54,14 @@ select option { color: #fff; }
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,.03) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255,255,255,.12) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
 }
 .orb { position: absolute; border-radius: 9999px; }
-.orb-blue  { top: -128px; left: -80px; width: 480px; height: 480px; background: #A6B5E9; filter: blur(120px); opacity: .22; animation: orbMove1 12s ease-in-out infinite; }
-.orb-green { top: 33%; right: -96px; width: 520px; height: 520px; background: #7AE0BF; filter: blur(130px); opacity: .18; animation: orbMove2 18s ease-in-out infinite; }
+.orb-blue  { top: -128px; left: -80px; width: 480px; height: 480px; background: #A6B5E9; filter: blur(120px); opacity: .22; animation: orbMove1 18s ease-in-out infinite; }
+.orb-green { top: 33%; right: -96px; width: 520px; height: 520px; background: #7AE0BF; filter: blur(130px); opacity: .18; animation: orbMove2 22s ease-in-out infinite; }
 .orb-teal  { bottom: -160px; left: 33%; width: 560px; height: 560px; background: #84CEE0; filter: blur(140px); opacity: .16; animation: orbMove3 26s ease-in-out infinite; }
 
 @keyframes orbMove1 {
@@ -345,7 +345,7 @@ select option { color: #fff; }
 .tag-chip-btn    { cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s, color .15s; }
 .tag-chip-btn:hover { background: rgba(166,181,233,.22); border-color: rgba(166,181,233,.5); color: #c8d4f5; }
 
-.card-delete-btn {
+.card-edit-btn {
   position: absolute;
   top: 14px;
   right: 14px;
@@ -363,8 +363,8 @@ select option { color: #fff; }
   font-family: inherit;
   z-index: 2;
 }
-.sound-card:hover .card-delete-btn { opacity: 1; }
-.card-delete-btn:hover { background: rgba(255,80,80,.18); border-color: rgba(255,80,80,.45); color: #ff6b6b; }
+.sound-card:hover .card-edit-btn { opacity: 1; }
+.card-edit-btn:hover { background: rgba(166,181,233,.18); border-color: rgba(166,181,233,.45); color: #A6B5E9; }
 
 .card-delete-confirm {
   position: absolute;

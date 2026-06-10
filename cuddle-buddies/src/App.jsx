@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   SearchIcon, PlayIcon, PauseIcon, DownloadIcon, UploadIcon,
   MusicIcon, XIcon, HeadphonesIcon, SlidersIcon, ClockIcon,
-  CheckIcon, SparklesIcon, FileIcon, ChevronDownIcon,
+  CheckIcon, SparklesIcon, FileIcon, ChevronDownIcon, PencilIcon,
 } from "./icons";
 import { SOUNDS, CATEGORIES, CATEGORY_TREE, MAIN_CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
@@ -192,10 +192,13 @@ function Waveform({ wave, progress = 0, active = false }) {
 
 /* ─── SoundCard ─── */
 
-function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, onTagClick }) {
-  const [confirmDel, setConfirmDel] = useState(false);
+function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit }) {
   const mainCat  = findMainCat(sound.category);
   const catColor = CAT_COLORS[mainCat] ?? "rgba(255,255,255,.4)";
+  const isSubcat = mainCat && CATEGORY_TREE[mainCat]?.includes(sound.category);
+  const badgeLabel = mainCat
+    ? (isSubcat ? `${mainCat} · ${sound.category}` : mainCat)
+    : sound.category;
   return (
     <div
       className="sound-card"
@@ -207,24 +210,13 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, o
       }}
     >
       <button
-        className="card-delete-btn"
-        onClick={() => setConfirmDel(true)}
-        aria-label="Delete sound"
-        title="Delete"
+        className="card-edit-btn"
+        onClick={() => onEdit(sound.id)}
+        aria-label="Edit sound"
+        title="Edit"
       >
-        <XIcon size={11} />
+        <PencilIcon size={14} />
       </button>
-
-      {confirmDel && (
-        <div className="card-delete-confirm anim-fade">
-          <p className="card-del-question">Delete "{sound.name}"?</p>
-          <p className="card-del-sub">This cannot be undone.</p>
-          <div className="card-delete-actions">
-            <button onClick={() => setConfirmDel(false)} className="del-cancel-btn">Cancel</button>
-            <button onClick={() => { onDelete(sound.id); setConfirmDel(false); }} className="del-confirm-btn">Delete</button>
-          </div>
-        </div>
-      )}
 
       <div className="sound-card-row">
         <button
@@ -247,7 +239,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, o
             <h3 className="sound-name">{sound.name}</h3>
             <span className="type-badge">
               <span className="type-dot" style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }} />
-              {sound.category}
+              {badgeLabel}
             </span>
           </div>
           <div className="wave-wrap">
@@ -257,9 +249,6 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, o
             <span className="dur-label">
               <ClockIcon size={13} /> {fmtDur(sound.duration)}
             </span>
-            {sound.tags.slice(0, 4).map((t) => (
-              <button key={t} className="tag-chip tag-chip-btn" onClick={() => onTagClick(t)}>#{t}</button>
-            ))}
           </div>
         </div>
       </div>
@@ -276,13 +265,96 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onDelete, o
   );
 }
 
+/* ─── EditPanel ─── */
+
+function EditPanel({ sound, onSave, onDelete, onClose }) {
+  const initMain = findMainCat(sound.category) ?? MAIN_CATEGORIES[0];
+  const initSub  = CATEGORY_TREE[initMain]?.includes(sound.category) ? sound.category : "";
+  const [name,       setName]       = useState(sound.name);
+  const [mainCat,    setMainCat]    = useState(initMain);
+  const [subCat,     setSubCat]     = useState(initSub);
+  const [saving,     setSaving]     = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !mainCat) return;
+    setSaving(true);
+    try {
+      await onSave(sound.id, { name: name.trim(), category: subCat || mainCat });
+      onClose();
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="upload-panel">
+      <button type="button" onClick={onClose} aria-label="Close" className="upload-close-btn">
+        <XIcon size={17} />
+      </button>
+      <div className="upload-heading">
+        <div className="upload-icon-wrap" style={{ background: "rgba(166,181,233,.15)", border: "1px solid rgba(166,181,233,.35)", color: "#A6B5E9" }}>
+          <PencilIcon size={18} />
+        </div>
+        <div>
+          <h2 className="upload-title">Edit sound</h2>
+          <p className="upload-subtitle">{sound.name}</p>
+        </div>
+      </div>
+      <form onSubmit={handleSave} className="upload-form">
+        <div>
+          <label className="form-label">Name</label>
+          <input className="form-input" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="form-grid2">
+          <div>
+            <label className="form-label">Category <span style={{ color: "#ff6b6b" }}>*</span></label>
+            <div className="select-wrap">
+              <select className="form-input form-select" value={mainCat}
+                onChange={(e) => { setMainCat(e.target.value); setSubCat(""); }}>
+                {MAIN_CATEGORIES.map((m) => <option key={m} value={m} style={{ background: "#1c1b3a" }}>{m}</option>)}
+              </select>
+              <ChevronDownIcon size={16} className="select-chevron" />
+            </div>
+          </div>
+          <div>
+            <label className="form-label">Subcategory <span style={{ color: "rgba(255,255,255,.3)", fontSize: 11 }}>(optional)</span></label>
+            <div className="select-wrap">
+              <select className="form-input form-select" value={subCat} onChange={(e) => setSubCat(e.target.value)}>
+                <option value="" style={{ background: "#1c1b3a" }}>None</option>
+                {CATEGORY_TREE[mainCat]?.map((sc) => <option key={sc} value={sc} style={{ background: "#1c1b3a" }}>{sc}</option>)}
+              </select>
+              <ChevronDownIcon size={16} className="select-chevron" />
+            </div>
+          </div>
+        </div>
+        <button type="submit" disabled={saving} className="submit-btn"
+          style={{ background: "#A6B5E9", color: "#1a1730", boxShadow: "0 10px 30px -10px rgba(166,181,233,0.5)" }}>
+          {saving ? "Saving…" : <><CheckIcon size={17} strokeWidth={2.4} /> Save changes</>}
+        </button>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 12 }}>
+          {!confirmDel ? (
+            <button type="button" onClick={() => setConfirmDel(true)}
+              style={{ width: "100%", padding: "9px", borderRadius: 10, border: "1px solid rgba(255,80,80,.3)", background: "rgba(255,80,80,.08)", color: "#ff6b6b", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Delete sound
+            </button>
+          ) : (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setConfirmDel(false)} className="del-cancel-btn" style={{ flex: 1 }}>Cancel</button>
+              <button type="button" onClick={() => { onDelete(sound.id); onClose(); }} className="del-confirm-btn" style={{ flex: 1 }}>Confirm delete</button>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
 /* ─── UploadPanel ─── */
 
 function UploadPanel({ onAdd, onClose }) {
   const [fileObj,   setFileObj]   = useState(null);
   const [fileName,  setFileName]  = useState(null);
   const [name,      setName]      = useState("");
-  const [tags,      setTags]      = useState("");
   const [mainCat,   setMainCat]   = useState("");
   const [subCat,    setSubCat]    = useState("");
   const [uploading, setUploading] = useState(false);
@@ -300,8 +372,6 @@ function UploadPanel({ onAdd, onClose }) {
     console.log("[Upload] Starting upload for:", name);
 
     try {
-      const parsedTags = tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
-
       let fileBase64 = null;
       let mimeType   = null;
       if (fileObj) {
@@ -316,12 +386,11 @@ function UploadPanel({ onAdd, onClose }) {
         type:     "Realistic",
         category: subCat || mainCat,
         duration: 1 + Math.random() * 3,
-        tags:     parsedTags.length ? parsedTags : ["uploaded"],
         wave:     makeWave(name + Date.now()),
         fileBase64, fileName, mimeType,
       });
 
-      setName(""); setTags(""); setFileObj(null); setFileName(null);
+      setName(""); setFileObj(null); setFileName(null);
       setMainCat(""); setSubCat("");
       if (fileRef.current) fileRef.current.value = "";
       onClose?.();
@@ -402,13 +471,6 @@ function UploadPanel({ onAdd, onClose }) {
           </div>
         </div>
 
-        <div>
-          <label className="form-label">Tags</label>
-          <input className="form-input" value={tags} onChange={(e) => setTags(e.target.value)}
-            placeholder="funny, jump, retro" />
-        </div>
-
-
         {uploadErr && (
           <p style={{ color: "#ff6b6b", fontSize: 12, margin: 0, textAlign: "center" }}>{uploadErr}</p>
         )}
@@ -436,6 +498,7 @@ export default function App() {
   const [progress,    setProgress]    = useState(0);
   const [toast,       setToast]       = useState(null);
   const [showUpload,      setShowUpload]      = useState(false);
+  const [editingSound,    setEditingSound]    = useState(null);
   const [showTypeDrop,    setShowTypeDrop]    = useState(false);
   const typeDropRef = useRef(null);
   const rafRef = useRef(null);
@@ -468,13 +531,14 @@ export default function App() {
       .finally(() => setLoadingData(false));
   }, []);
 
-  /* Escape closes modal */
+  /* Escape closes modals */
   useEffect(() => {
-    if (!showUpload) return;
-    const onKey = (e) => { if (e.key === "Escape") setShowUpload(false); };
+    const onKey = (e) => {
+      if (e.key === "Escape") { setShowUpload(false); setEditingSound(null); }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showUpload]);
+  }, []);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -556,7 +620,6 @@ export default function App() {
           type:       data.type,
           category:   data.category,
           duration:   data.duration,
-          tags:       data.tags,
           fileBase64: data.fileBase64 ?? null,
           fileName:   data.fileName  ?? null,
           mimeType:   data.mimeType  ?? null,
@@ -590,6 +653,20 @@ export default function App() {
     }
 
     showToast(`Added "${data.name}" — try searching for it`);
+  }, [showToast]);
+
+  const editSound = useCallback(async (id, updates) => {
+    setSounds((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s));
+    showToast(`Updated "${updates.name}"`);
+    if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "update", id, ...updates }),
+        });
+      } catch { /* silent */ }
+    }
   }, [showToast]);
 
   const deleteSound = useCallback(async (id) => {
@@ -626,9 +703,9 @@ export default function App() {
       return;
     }
     const meta = {
-      id: snd.id, name: snd.name, type: snd.type, category: snd.category,
+      id: snd.id, name: snd.name, category: snd.category,
       duration_s: Math.round(snd.duration * 100) / 100,
-      tags: snd.tags, addedAt: snd.addedAt,
+      addedAt: snd.addedAt,
     };
     downloadBlob(`${snd.name.replace(/[^\w]+/g, "_").toLowerCase()}.json`, JSON.stringify(meta, null, 2));
     showToast(`Downloaded "${snd.name}"`);
@@ -645,7 +722,7 @@ export default function App() {
         if (s.category !== activeMainCat && !subs.includes(s.category)) return false;
       }
       if (q) {
-        const hay = `${s.name} ${s.tags.join(" ")} ${s.category} ${s.type}`.toLowerCase();
+        const hay = `${s.name} ${s.category}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -806,8 +883,8 @@ export default function App() {
                   key={s.id} sound={s}
                   isPlaying={playingId === s.id}
                   progress={playingId === s.id ? progress : 0}
-                  onPlay={playSound} onDownload={downloadSound} onDelete={deleteSound}
-                  onTagClick={(tag) => setQuery(tag)}
+                  onPlay={playSound} onDownload={downloadSound}
+                  onEdit={(id) => setEditingSound(sounds.find((s) => s.id === id))}
                 />
               ))}
             </div>
@@ -821,6 +898,22 @@ export default function App() {
           <div className="modal-positioner">
             <div className="modal-box anim-pop" role="dialog" aria-modal="true" aria-label="Drop a new sound">
               <UploadPanel onAdd={addSound} onClose={() => setShowUpload(false)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingSound && (
+        <div className="modal-overlay">
+          <div className="modal-backdrop anim-fade" onClick={() => setEditingSound(null)} />
+          <div className="modal-positioner">
+            <div className="modal-box anim-pop" role="dialog" aria-modal="true" aria-label="Edit sound">
+              <EditPanel
+                sound={editingSound}
+                onSave={editSound}
+                onDelete={deleteSound}
+                onClose={() => setEditingSound(null)}
+              />
             </div>
           </div>
         </div>

@@ -1,8 +1,8 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   SearchIcon, PlayIcon, PauseIcon, DownloadIcon, UploadIcon,
-  MusicIcon, XIcon, HeadphonesIcon, SlidersIcon, ClockIcon,
-  CheckIcon, SparklesIcon, FileIcon, ChevronDownIcon, PencilIcon,
+  MusicIcon, XIcon, ClockIcon,
+  CheckIcon, FileIcon, ChevronDownIcon, PencilIcon,
 } from "./icons";
 import { SOUNDS, CATEGORIES, CATEGORY_TREE, MAIN_CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
@@ -40,7 +40,7 @@ function PasswordGate({ children }) {
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
       padding: "24px",
-      background: "radial-gradient(1200px 800px at 12% -5%, #1d193c 0%, rgba(29,25,60,0) 55%), radial-gradient(1000px 700px at 100% 10%, #0e2734 0%, rgba(14,39,52,0) 50%), linear-gradient(160deg, #0b0d1b 0%, #0e0d20 45%, #081118 100%)",
+      background: "radial-gradient(1200px 800px at 12% -5%, #1d193c 0%, rgba(29,25,60,0) 55%), radial-gradient(1000px 700px at 0% 100%, #0e2734 0%, rgba(14,39,52,0) 50%), linear-gradient(160deg, #0b0d1b 0%, #0e0d20 45%, #081118 100%)",
     }}>
       <div style={{
         width: "100%", maxWidth: "380px",
@@ -159,9 +159,6 @@ const normalizeRemoteSound = (s) => {
       name:     String(s.name || "Unknown Sound"),
       category,
       duration: parseFloat(s.duration) || 1,
-      tags: typeof s.tags === "string"
-        ? s.tags.split(",").map((t) => t.trim()).filter(Boolean)
-        : Array.isArray(s.tags) ? s.tags : ["uploaded"],
       wave: makeWave(String(s.name || "sound")),
     };
   } catch { return null; }
@@ -385,16 +382,13 @@ function UploadPanel({ onAdd, onClose }) {
 
     setUploading(true);
     setUploadErr(null);
-    console.log("[Upload] Starting upload for:", name);
 
     try {
       let fileBase64 = null;
       let mimeType   = null;
       if (fileObj) {
-        console.log("[Upload] Converting file to base64:", fileObj.name, fileObj.size, "bytes");
         fileBase64 = await fileToBase64(fileObj);
         mimeType   = fileObj.type || "audio/mpeg";
-        console.log("[Upload] Base64 ready, length:", fileBase64.length);
       }
 
       await onAdd({
@@ -687,7 +681,6 @@ export default function App() {
 
     if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
       try {
-        console.log("[addSound] Sending to Apps Script:", APPS_SCRIPT_URL);
         const body = JSON.stringify({
           name:       data.name,
           type:       data.type,
@@ -697,15 +690,12 @@ export default function App() {
           fileName:   data.fileName  ?? null,
           mimeType:   data.mimeType  ?? null,
         });
-        console.log("[addSound] Body size:", body.length, "chars");
         const res  = await fetch(APPS_SCRIPT_URL, {
           method:  "POST",
           headers: { "Content-Type": "text/plain" },
           body,
         });
-        console.log("[addSound] Response status:", res.status);
         const text = await res.text();
-        console.log("[addSound] Response text:", text.slice(0, 200));
         try {
           const result = JSON.parse(text);
           if (result.sound) {
@@ -767,7 +757,7 @@ export default function App() {
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement("a");
         a.href = url;
-        a.download = `${snd.name.replace(/[^\w]+/g, "_").toLowerCase()}.${ext}`;
+        a.download = `${snd.name.replace(/[\\/:*?"<>|]/g, "_")}.${ext}`;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 2000);
       } catch {
@@ -803,19 +793,9 @@ export default function App() {
   }, [sounds, query, activeMainCat, activeSubCat]);
 
   const catCounts = useMemo(() => {
-    const main = {}; MAIN_CATEGORIES.forEach((m) => (main[m] = 0));
-    const sub  = {}; CATEGORIES.forEach((c) => (sub[c] = 0));
-    sounds.forEach((s) => {
-      if (sub[s.category] != null) {
-        sub[s.category]++;
-        for (const [m, subs] of Object.entries(CATEGORY_TREE)) {
-          if (subs.includes(s.category)) { main[m]++; break; }
-        }
-      } else if (main[s.category] != null) {
-        main[s.category]++;
-      }
-    });
-    return { main, sub };
+    const sub = {}; CATEGORIES.forEach((c) => (sub[c] = 0));
+    sounds.forEach((s) => { if (sub[s.category] != null) sub[s.category]++; });
+    return sub;
   }, [sounds]);
 
   return (
@@ -917,7 +897,7 @@ export default function App() {
                       color:       on ? "#F7CB07" : "rgba(255,255,255,0.9)",
                       fontSize: 11.5,
                     }}>
-                    {sc} <span className="cat-count">{catCounts.sub[sc] ?? 0}</span>
+                    {sc} <span className="cat-count">{catCounts[sc] ?? 0}</span>
                   </button>
                 );
               })}

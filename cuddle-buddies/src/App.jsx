@@ -192,10 +192,17 @@ function Waveform({ wave, progress = 0, active = false }) {
 
 /* ─── SoundCard ─── */
 
-function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onFilterMain, onFilterSub }) {
+function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onSeek, onFilterMain, onFilterSub }) {
   const mainCat  = findMainCat(sound.category);
   const catColor = CAT_COLORS[mainCat] ?? "rgba(255,255,255,.4)";
   const isSubcat = mainCat && CATEGORY_TREE[mainCat]?.includes(sound.category);
+
+  const handleWaveClick = (e) => {
+    if (!isPlaying || !onSeek) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    onSeek(sound.id, Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+  };
+
   return (
     <div
       className="sound-card"
@@ -206,15 +213,6 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onF
           : "0 8px 30px -16px rgba(0,0,0,0.6)",
       }}
     >
-      <button
-        className="card-edit-btn"
-        onClick={() => onEdit(sound.id)}
-        aria-label="Edit sound"
-        title="Edit"
-      >
-        <PencilIcon size={14} />
-      </button>
-
       <div className="sound-card-row">
         <button
           onClick={() => onPlay(sound.id)}
@@ -246,7 +244,12 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onF
               )}
             </div>
           </div>
-          <div className="wave-wrap">
+          <div
+            className="wave-wrap"
+            onClick={handleWaveClick}
+            style={{ cursor: isPlaying ? "pointer" : "default" }}
+            title={isPlaying ? "Click to seek" : ""}
+          >
             <Waveform wave={sound.wave} progress={progress} active={isPlaying} />
           </div>
           <div className="sound-meta-row">
@@ -256,6 +259,15 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onF
           </div>
         </div>
       </div>
+
+      <button
+        className="card-edit-btn"
+        onClick={() => onEdit(sound.id)}
+        aria-label="Edit sound"
+        title="Edit"
+      >
+        <PencilIcon size={14} />
+      </button>
 
       <button
         onClick={() => onDownload(sound)}
@@ -553,7 +565,7 @@ export default function App() {
       .finally(() => setLoadingData(false));
   }, []);
 
-  /* Cards display: initial load — just show, cardIn animation handles it */
+  /* Cards display: initial load */
   useEffect(() => {
     if (!loadingData) {
       setShownSounds(filtered);
@@ -571,11 +583,17 @@ export default function App() {
     return () => clearTimeout(fadeRef.current);
   }, [activeMainCat, activeSubCat]); // eslint-disable-line
 
-  /* Cards display: search — instant update, no fade */
+  /* Cards display: search — instant, no fade */
   useEffect(() => {
     if (gridInitRef.current) return;
     setShownSounds(filtered);
   }, [query]); // eslint-disable-line
+
+  /* Cards display: sounds array changed (add / delete) — instant update */
+  useEffect(() => {
+    if (gridInitRef.current) return;
+    setShownSounds(filtered);
+  }, [sounds]); // eslint-disable-line
 
   /* Escape closes modals */
   useEffect(() => {
@@ -600,6 +618,15 @@ export default function App() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setPlayingId(null); setProgress(0);
   }, []);
+
+  const seekSound = useCallback((id, fraction) => {
+    if (!audioRef.current || playingId !== id) return;
+    const audio = audioRef.current;
+    if (audio.duration && !isNaN(audio.duration)) {
+      audio.currentTime = audio.duration * fraction;
+      setProgress(fraction);
+    }
+  }, [playingId]);
 
   const playSound = useCallback((id) => {
     cancelAnimationFrame(rafRef.current);
@@ -804,8 +831,10 @@ export default function App() {
 
         <header className="header">
           <div className="header-card">
-            <img src={logoSrc} alt="Cuddle Buddies DJ" className="header-logo" />
-            <div className="header-text">
+            <button className="header-refresh-btn" onClick={() => window.location.reload()} aria-label="Refresh page">
+              <img src={logoSrc} alt="Cuddle Buddies DJ" className="header-logo" />
+            </button>
+            <div className="header-text" onClick={() => window.location.reload()} style={{ cursor: "pointer" }}>
               <h1 className="header-title">
                 <span className="header-title-gradient">Cuddle Buddies</span>
                 <br />
@@ -908,7 +937,7 @@ export default function App() {
             </span>
           </div>
 
-          {loadingData ? (
+          {(loadingData || (shownSounds.length === 0 && filtered.length > 0)) ? (
             <div className="empty-state">
               <div className="empty-icon" style={{ opacity: 0.4, animation: "spin 1s linear infinite" }}><MusicIcon size={26} /></div>
               <p className="empty-title" style={{ opacity: 0.5 }}>Loading sounds…</p>
@@ -928,7 +957,7 @@ export default function App() {
                   key={s.id} sound={s}
                   isPlaying={playingId === s.id}
                   progress={playingId === s.id ? progress : 0}
-                  onPlay={playSound} onDownload={downloadSound}
+                  onPlay={playSound} onDownload={downloadSound} onSeek={seekSound}
                   onEdit={(id) => setEditingSound(sounds.find((s) => s.id === id))}
                   onFilterMain={(main) => { setActiveMainCat(main); setActiveSubCat(null); }}
                   onFilterSub={(sub) => { setActiveMainCat(findMainCat(sub)); setActiveSubCat(sub); }}

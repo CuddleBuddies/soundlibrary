@@ -54,7 +54,7 @@ select option { color: #fff; }
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255,255,255,.12) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
@@ -97,6 +97,15 @@ select option { color: #fff; }
 }
 @media (min-width: 640px) { .header-card { padding: 0 32px 0 0; gap: 24px; } }
 
+.header-refresh-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
 .header-logo {
   height: 140px;
   width: auto;
@@ -298,7 +307,8 @@ select option { color: #fff; }
 .cat-count { font-size: 10px; opacity: .6; }
 
 /* ── results ── */
-.results        { margin-top: 36px; }
+.results        { margin-top: 32px; }
+@media (min-width: 640px) { .results { margin-top: 40px; } }
 .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding: 0 4px; }
 .results-meta   { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.55); }
 .results-count  { color: #fff; font-weight: 600; }
@@ -361,8 +371,8 @@ select option { color: #fff; }
 
 .card-edit-btn {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  bottom: 14px;
+  left: 14px;
   width: 34px;
   height: 34px;
   border-radius: 10px;

@@ -40,7 +40,7 @@ function PasswordGate({ children }) {
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
       padding: "24px",
-      background: "radial-gradient(1200px 800px at 12% -5%, #2a2456 0%, rgba(42,36,86,0) 55%), radial-gradient(1000px 700px at 100% 10%, #14384a 0%, rgba(20,56,74,0) 50%), linear-gradient(160deg, #0f1226 0%, #14132e 45%, #0c1822 100%)",
+      background: "radial-gradient(1200px 800px at 12% -5%, #1d193c 0%, rgba(29,25,60,0) 55%), radial-gradient(1000px 700px at 100% 10%, #0e2734 0%, rgba(14,39,52,0) 50%), linear-gradient(160deg, #0b0d1b 0%, #0e0d20 45%, #081118 100%)",
     }}>
       <div style={{
         width: "100%", maxWidth: "380px",
@@ -192,13 +192,10 @@ function Waveform({ wave, progress = 0, active = false }) {
 
 /* ─── SoundCard ─── */
 
-function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit }) {
+function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onFilterMain, onFilterSub }) {
   const mainCat  = findMainCat(sound.category);
   const catColor = CAT_COLORS[mainCat] ?? "rgba(255,255,255,.4)";
   const isSubcat = mainCat && CATEGORY_TREE[mainCat]?.includes(sound.category);
-  const badgeLabel = mainCat
-    ? (isSubcat ? `${mainCat} · ${sound.category}` : mainCat)
-    : sound.category;
   return (
     <div
       className="sound-card"
@@ -237,10 +234,17 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit }) {
         <div className="sound-body">
           <div className="sound-title-row">
             <h3 className="sound-name">{sound.name}</h3>
-            <span className="type-badge">
-              <span className="type-dot" style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }} />
-              {badgeLabel}
-            </span>
+            <div style={{ display: "flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
+              <button className="type-badge cat-filter-btn" onClick={() => onFilterMain?.(mainCat ?? sound.category)}>
+                <span className="type-dot" style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }} />
+                {mainCat ?? sound.category}
+              </button>
+              {isSubcat && (
+                <button className="type-badge cat-filter-btn" onClick={() => onFilterSub?.(sound.category)}>
+                  {sound.category}
+                </button>
+              )}
+            </div>
           </div>
           <div className="wave-wrap">
             <Waveform wave={sound.wave} progress={progress} active={isPlaying} />
@@ -760,9 +764,6 @@ export default function App() {
           <div className="header-card">
             <img src={logoSrc} alt="Cuddle Buddies DJ" className="header-logo" />
             <div className="header-text">
-              <div className="header-eyebrow">
-                <HeadphonesIcon size={14} /> Internal Sound Library
-              </div>
               <h1 className="header-title">
                 <span className="header-title-gradient">Cuddle Buddies</span>
                 <br />
@@ -885,6 +886,8 @@ export default function App() {
                   progress={playingId === s.id ? progress : 0}
                   onPlay={playSound} onDownload={downloadSound}
                   onEdit={(id) => setEditingSound(sounds.find((s) => s.id === id))}
+                  onFilterMain={(main) => { setActiveMainCat(main); setActiveSubCat(null); }}
+                  onFilterSub={(sub) => { setActiveMainCat(findMainCat(sub)); setActiveSubCat(sub); }}
                 />
               ))}
             </div>

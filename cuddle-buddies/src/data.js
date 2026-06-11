@@ -1,5 +1,5 @@
 export const CATEGORY_TREE = {
-  "Animal Sounds": ["Cat", "Dog", "Parrot", "Raccoon", "Pig", "Donkey", "Horse", "Goat", "Sheep", "Duck", "Goose", "Other animal"],
+  "Animal Sounds": ["Cat", "Dog", "Parrot", "Raccoon", "Pig", "Donkey", "Horse", "Goat", "Sheep", "Duck", "Goose", "Chicken", "Other animal"],
   "Ambience":      ["Outdoors", "Indoors", "Street Noises", "Nature / Weather"],
   "SFX":           ["UI sounds", "Transitions", "Impacts", "Cartoonish"],
 };
@@ -21,22 +21,22 @@ export function makeWave(seed, bars = 44) {
 }
 
 const RAW_SOUNDS = [
-  { name: "Capy Boing Bounce",   type: "Cartoonish", category: "Impacts",        duration: 1.2,  tags: ["boing","bounce","funny","spring"] },
-  { name: "Retro Coin Pickup",   type: "Cartoonish", category: "UI sounds",      duration: 0.8,  tags: ["coin","retro","8bit","reward"] },
-  { name: "Soft Page Swipe",     type: "Realistic",  category: "Transitions",    duration: 0.6,  tags: ["swipe","page","subtle","ui"] },
-  { name: "Cartoon Jump Hop",    type: "Cartoonish", category: "Cartoonish",    duration: 0.9,  tags: ["jump","hop","cartoon","spring"] },
-  { name: "Thunder Crack Hit",   type: "Realistic",  category: "Impacts",        duration: 2.4,  tags: ["thunder","impact","boom","storm"] },
-  { name: "Bubble Pop Combo",    type: "Cartoonish", category: "UI sounds",      duration: 0.5,  tags: ["pop","bubble","click","cute"] },
-  { name: "Cozy Rain Loop",      type: "Realistic",  category: "Nature / Weather", duration: 12.0, tags: ["rain","ambient","loop","calm"] },
-  { name: "Vinyl Scratch Stop",  type: "Realistic",  category: "Transitions",    duration: 1.1,  tags: ["vinyl","scratch","dj","record"] },
-  { name: "Sad Trombone Meme",   type: "Cartoonish", category: "Cartoon sounds", duration: 1.8,  tags: ["fail","trombone","meme","funny"] },
-  { name: "Airy Riser Whoosh",   type: "Realistic",  category: "Outdoors",       duration: 2.0,  tags: ["whoosh","riser","transition","air"] },
-  { name: "Squeaky Toy Honk",    type: "Cartoonish", category: "Cartoon sounds", duration: 0.7,  tags: ["squeak","honk","toy","funny"] },
-  { name: "Glass Ding Confirm",  type: "Realistic",  category: "UI sounds",      duration: 0.6,  tags: ["ding","confirm","ui","bell"] },
-  { name: "Cuddle Purr Ambient", type: "Realistic",  category: "Indoors",        duration: 9.5,  tags: ["purr","warm","ambient","cozy"] },
-  { name: "Boomy Impact Slam",   type: "Cartoonish", category: "Impacts",        duration: 1.4,  tags: ["boom","slam","impact","heavy"] },
-  { name: "Laser Zap Swoosh",    type: "Cartoonish", category: "SFX",            duration: 0.9,  tags: ["laser","zap","scifi","whoosh"] },
-  { name: "Wholesome Chime Up",  type: "Cartoonish", category: "Transitions",    duration: 1.0,  tags: ["chime","level up","sparkle","reward"] },
+  { name: "Capy Boing Bounce",   category: "Impacts",          duration: 1.2  },
+  { name: "Retro Coin Pickup",   category: "UI sounds",        duration: 0.8  },
+  { name: "Soft Page Swipe",     category: "Transitions",      duration: 0.6  },
+  { name: "Cartoon Jump Hop",    category: "Cartoonish",       duration: 0.9  },
+  { name: "Thunder Crack Hit",   category: "Impacts",          duration: 2.4  },
+  { name: "Bubble Pop Combo",    category: "UI sounds",        duration: 0.5  },
+  { name: "Cozy Rain Loop",      category: "Nature / Weather", duration: 12.0 },
+  { name: "Vinyl Scratch Stop",  category: "Transitions",      duration: 1.1  },
+  { name: "Sad Trombone Meme",   category: "Cartoonish",       duration: 1.8  },
+  { name: "Airy Riser Whoosh",   category: "Outdoors",         duration: 2.0  },
+  { name: "Squeaky Toy Honk",    category: "Cartoonish",       duration: 0.7  },
+  { name: "Glass Ding Confirm",  category: "UI sounds",        duration: 0.6  },
+  { name: "Cuddle Purr Ambient", category: "Indoors",          duration: 9.5  },
+  { name: "Boomy Impact Slam",   category: "Impacts",          duration: 1.4  },
+  { name: "Laser Zap Swoosh",    category: "SFX",              duration: 0.9  },
+  { name: "Wholesome Chime Up",  category: "Transitions",      duration: 1.0  },
 ];
 
 let _id = 0;

@@ -268,15 +268,11 @@ select option { color: #fff; }
   align-items: center;
   flex-wrap: nowrap;
   gap: 6px;
-  max-width: 768px;
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.07);
   overflow-x: auto;
   scrollbar-width: none;
   box-sizing: border-box;
+  padding: 4px 0;
 }
 .subcat-chips::-webkit-scrollbar { display: none; }
 .subcat-chip { flex-shrink: 0; padding: 4px 10px !important; }

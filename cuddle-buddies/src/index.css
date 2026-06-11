@@ -266,6 +266,7 @@ select option { color: #fff; }
   margin-top: 10px;
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: nowrap;
   gap: 6px;
   width: 100%;
@@ -276,6 +277,11 @@ select option { color: #fff; }
 }
 .subcat-chips::-webkit-scrollbar { display: none; }
 .subcat-chip { flex-shrink: 0; padding: 4px 10px !important; }
+
+@keyframes subcatIn  { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes subcatOut { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(-8px); } }
+.subcat-in  { animation: subcatIn  .22s cubic-bezier(.16,1,.3,1) forwards; }
+.subcat-out { animation: subcatOut .18s ease-in forwards; }
 .cat-chip {
   display: inline-flex;
   align-items: center;
@@ -308,6 +314,11 @@ select option { color: #fff; }
 @media (min-width: 1024px) { .cards-grid { grid-template-columns: repeat(3, 1fr); } }
 
 /* ── sound card ── */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .sound-card {
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.15);
@@ -315,6 +326,7 @@ select option { color: #fff; }
   backdrop-filter: blur(12px);
   padding: 16px 16px 52px;
   transition: background .2s, border-color .2s, box-shadow .2s;
+  animation: cardIn 0.3s cubic-bezier(.16,1,.3,1) both;
 }
 @media (min-width: 640px) { .sound-card { padding: 20px 20px 52px; } }
 .sound-card:hover { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.25); }

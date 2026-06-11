@@ -504,8 +504,26 @@ export default function App() {
   const [showUpload,      setShowUpload]      = useState(false);
   const [editingSound,    setEditingSound]    = useState(null);
   const [showTypeDrop,    setShowTypeDrop]    = useState(false);
-  const typeDropRef = useRef(null);
-  const rafRef = useRef(null);
+  const [subCatHiding,    setSubCatHiding]    = useState(false);
+  const [shownSounds,     setShownSounds]     = useState([]);
+  const [gridFading,      setGridFading]      = useState(false);
+  const prevMainCatRef = useRef(null);
+  const typeDropRef    = useRef(null);
+  const rafRef         = useRef(null);
+  const fadeRef        = useRef(null);
+  const gridInitRef    = useRef(true);
+
+  useEffect(() => {
+    let t;
+    if (activeMainCat) {
+      prevMainCatRef.current = activeMainCat;
+      setSubCatHiding(false);
+    } else if (prevMainCatRef.current) {
+      setSubCatHiding(true);
+      t = setTimeout(() => { setSubCatHiding(false); prevMainCatRef.current = null; }, 200);
+    }
+    return () => clearTimeout(t);
+  }, [activeMainCat]);
 
   useEffect(() => {
     if (!showTypeDrop) return;
@@ -534,6 +552,30 @@ export default function App() {
       .catch(() => { setSounds(SOUNDS); })
       .finally(() => setLoadingData(false));
   }, []);
+
+  /* Cards display: initial load — just show, cardIn animation handles it */
+  useEffect(() => {
+    if (!loadingData) {
+      setShownSounds(filtered);
+      gridInitRef.current = false;
+    }
+  }, [loadingData]); // eslint-disable-line
+
+  /* Cards display: category filter — fade out → swap → fade in */
+  useEffect(() => {
+    if (gridInitRef.current) return;
+    clearTimeout(fadeRef.current);
+    const snap = filtered;
+    setGridFading(true);
+    fadeRef.current = setTimeout(() => { setShownSounds(snap); setGridFading(false); }, 150);
+    return () => clearTimeout(fadeRef.current);
+  }, [activeMainCat, activeSubCat]); // eslint-disable-line
+
+  /* Cards display: search — instant update, no fade */
+  useEffect(() => {
+    if (gridInitRef.current) return;
+    setShownSounds(filtered);
+  }, [query]); // eslint-disable-line
 
   /* Escape closes modals */
   useEffect(() => {
@@ -834,16 +876,16 @@ export default function App() {
             </div>
           </div>
 
-          {activeMainCat && (
-            <div className="subcat-chips anim-pop">
-              {CATEGORY_TREE[activeMainCat].map((sc) => {
+          {(activeMainCat || subCatHiding) && (
+            <div className={`subcat-chips${subCatHiding ? " subcat-out" : " subcat-in"}`}>
+              {CATEGORY_TREE[activeMainCat || prevMainCatRef.current]?.map((sc) => {
                 const on = activeSubCat === sc;
                 return (
                   <button key={sc} onClick={() => setActiveSubCat(on ? null : sc)} className="cat-chip subcat-chip"
                     style={{
-                      borderColor: on ? "rgba(247,203,7,0.55)" : "rgba(255,255,255,0.1)",
-                      background:  on ? "rgba(247,203,7,0.12)" : "rgba(255,255,255,0.03)",
-                      color:       on ? "#F7CB07" : "rgba(255,255,255,0.55)",
+                      borderColor: on ? "rgba(247,203,7,0.55)" : "rgba(255,255,255,0.22)",
+                      background:  on ? "rgba(247,203,7,0.12)" : "rgba(255,255,255,0.10)",
+                      color:       on ? "#F7CB07" : "rgba(255,255,255,0.9)",
                       fontSize: 11.5,
                     }}>
                     {sc} <span className="cat-count">{catCounts.sub[sc] ?? 0}</span>
@@ -859,8 +901,8 @@ export default function App() {
             <span className="results-meta">
               <SlidersIcon size={15} />
               <span>
-                <span className="results-count">{filtered.length}</span>
-                {" "}{filtered.length === 1 ? "result" : "results"}
+                <span className="results-count">{shownSounds.length}</span>
+                {" "}{shownSounds.length === 1 ? "result" : "results"}
                 {query && <> for "<span className="results-query">{query}</span>"</>}
               </span>
             </span>
@@ -871,15 +913,17 @@ export default function App() {
               <div className="empty-icon" style={{ opacity: 0.4, animation: "spin 1s linear infinite" }}><MusicIcon size={26} /></div>
               <p className="empty-title" style={{ opacity: 0.5 }}>Loading sounds…</p>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon"><MusicIcon size={26} /></div>
-              <p className="empty-title">No sounds match that.</p>
-              <p className="empty-sub">Try a different word, clear a filter, or drop it in yourself.</p>
-            </div>
           ) : (
+            <div style={{ opacity: gridFading ? 0 : 1, transform: gridFading ? "translateY(6px)" : "translateY(0)", transition: "opacity 0.15s ease, transform 0.15s ease" }}>
+            {shownSounds.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon"><MusicIcon size={26} /></div>
+                <p className="empty-title">No sounds match that.</p>
+                <p className="empty-sub">Try a different word, clear a filter, or drop it in yourself.</p>
+              </div>
+            ) : (
             <div className="cards-grid">
-              {filtered.map((s) => (
+              {shownSounds.map((s) => (
                 <SoundCard
                   key={s.id} sound={s}
                   isPlaying={playingId === s.id}
@@ -890,6 +934,8 @@ export default function App() {
                   onFilterSub={(sub) => { setActiveMainCat(findMainCat(sub)); setActiveSubCat(sub); }}
                 />
               ))}
+            </div>
+            )}
             </div>
           )}
         </div>

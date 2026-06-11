@@ -61,7 +61,7 @@ select option { color: #fff; }
 }
 .orb { position: absolute; border-radius: 9999px; }
 .orb-blue  { top: -128px; left: -80px; width: 480px; height: 480px; background: #A6B5E9; filter: blur(120px); opacity: .22; animation: orbMove1 13.5s ease-in-out infinite; }
-.orb-green { bottom: -96px; left: -96px; width: 520px; height: 520px; background: #7AE0BF; filter: blur(130px); opacity: .18; animation: orbMove2 16.5s ease-in-out infinite; }
+.orb-green { top: 33%; right: -96px; width: 520px; height: 520px; background: #7AE0BF; filter: blur(130px); opacity: .18; animation: orbMove2 16.5s ease-in-out infinite; }
 .orb-teal  { bottom: -160px; left: 33%; width: 560px; height: 560px; background: #84CEE0; filter: blur(140px); opacity: .16; animation: orbMove3 19.5s ease-in-out infinite; }
 
 @keyframes orbMove1 {
@@ -309,11 +309,11 @@ select option { color: #fff; }
   border: 1px solid rgba(255,255,255,.15);
   background: rgba(255,255,255,.07);
   backdrop-filter: blur(12px);
-  padding: 16px 16px 52px;
+  padding: 14px 16px 47px;
   transition: background .2s, border-color .2s, box-shadow .2s;
   animation: cardIn 0.3s cubic-bezier(.16,1,.3,1) both;
 }
-@media (min-width: 640px) { .sound-card { padding: 20px 20px 52px; } }
+@media (min-width: 640px) { .sound-card { padding: 18px 20px 47px; } }
 .sound-card:hover {
   background: rgba(255,255,255,.11);
   border-color: rgba(132,206,224,.65);

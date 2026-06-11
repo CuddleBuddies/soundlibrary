@@ -94,9 +94,7 @@ select option { color: #fff; }
   gap: 20px;
   flex-wrap: wrap;
   overflow: visible;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 100%;
 }
 @media (min-width: 640px) { .header-card { padding: 0 32px 0 0; gap: 24px; } }
 

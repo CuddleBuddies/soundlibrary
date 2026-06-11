@@ -232,17 +232,6 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
         <div className="sound-body">
           <div className="sound-title-row">
             <h3 className="sound-name">{sound.name}</h3>
-            <div style={{ display: "flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
-              <button className="type-badge cat-filter-btn" onClick={() => onFilterMain?.(mainCat ?? sound.category)}>
-                <span className="type-dot" style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }} />
-                {mainCat ?? sound.category}
-              </button>
-              {isSubcat && (
-                <button className="type-badge cat-filter-btn" onClick={() => onFilterSub?.(sound.category)}>
-                  {sound.category}
-                </button>
-              )}
-            </div>
           </div>
           <div
             className="wave-wrap"
@@ -256,6 +245,17 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
             <span className="dur-label">
               <ClockIcon size={13} /> {fmtDur(sound.duration)}
             </span>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              <button className="type-badge cat-filter-btn" onClick={() => onFilterMain?.(mainCat ?? sound.category)}>
+                <span className="type-dot" style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }} />
+                {mainCat ?? sound.category}
+              </button>
+              {isSubcat && (
+                <button className="type-badge cat-filter-btn" onClick={() => onFilterSub?.(sound.category)}>
+                  {sound.category}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -846,7 +846,7 @@ export default function App() {
                 {loadingData
                   ? <div className="sound-count-num" style={{ fontSize: 18, opacity: 0.5 }}>…</div>
                   : <div className="sound-count-num">{sounds.length}</div>}
-                <div className="sound-count-label">sounds in DB</div>
+                <div className="sound-count-label">sounds in Cuddle</div>
               </div>
               <button onClick={() => setShowUpload(true)} className="upload-trigger-btn"
                 title="Add a new sound to the library">
@@ -926,17 +926,6 @@ export default function App() {
         </section>
 
         <div className="results">
-          <div className="results-header">
-            <span className="results-meta">
-              <SlidersIcon size={15} />
-              <span>
-                <span className="results-count">{shownSounds.length}</span>
-                {" "}{shownSounds.length === 1 ? "result" : "results"}
-                {query && <> for "<span className="results-query">{query}</span>"</>}
-              </span>
-            </span>
-          </div>
-
           {(loadingData || (shownSounds.length === 0 && filtered.length > 0)) ? (
             <div className="empty-state">
               <div className="empty-icon" style={{ opacity: 0.4, animation: "spin 1s linear infinite" }}><MusicIcon size={26} /></div>

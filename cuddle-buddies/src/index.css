@@ -42,7 +42,7 @@ select option { color: #fff; }
 
 /* ── layout ── */
 .app-root    { position: relative; min-height: 100vh; width: 100%; color: #fff; }
-.page-content { position: relative; max-width: 1382px; margin: 0 auto; padding: 0 20px 96px; z-index: 1; }
+.page-content { position: relative; max-width: 1175px; margin: 0 auto; padding: 0 20px 96px; z-index: 1; }
 @media (min-width: 640px) { .page-content { padding: 0 32px 96px; } }
 
 /* ── aurora background ── */
@@ -410,21 +410,21 @@ select option { color: #fff; }
 
 .dl-btn {
   position: absolute;
-  bottom: 14px;
-  right: 14px;
+  bottom: 12px;
+  right: 12px;
   display: grid;
   place-items: center;
   border-radius: 10px;
-  width: 34px;
-  height: 34px;
-  color: rgba(255,255,255,.55);
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.05);
+  width: 28px;
+  height: 28px;
+  color: rgba(255,255,255,.47);
+  border: none;
+  background: none;
   cursor: pointer;
-  transition: color .15s, background .15s;
+  transition: color .15s;
   font-family: inherit;
 }
-.dl-btn:hover { color: #fff; background: rgba(255,255,255,.12); }
+.dl-btn:hover { color: #fff; }
 
 /* ── waveform ── */
 .waveform { display: flex; align-items: center; gap: 2px; height: 26px; width: 100%; }

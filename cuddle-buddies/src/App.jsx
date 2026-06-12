@@ -509,6 +509,7 @@ export default function App() {
   const [toast,       setToast]       = useState(null);
   const [showUpload,      setShowUpload]      = useState(false);
   const [editingSound,    setEditingSound]    = useState(null);
+  const [isUploading,     setIsUploading]     = useState(false);
   const [showTypeDrop,    setShowTypeDrop]    = useState(false);
   const [subCatHiding,    setSubCatHiding]    = useState(false);
   const [shownSounds,     setShownSounds]     = useState([]);
@@ -675,47 +676,50 @@ export default function App() {
 
   /* addSound — optimistic UI + POST to Apps Script */
   const addSound = useCallback(async (data) => {
+    setIsUploading(true);
     const tempId = `tmp_${Date.now().toString(36)}`;
     const entry  = { id: tempId, addedAt: new Date().toISOString().split("T")[0], ...data };
     setSounds((prev) => [entry, ...prev]);
 
-    if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
-      try {
-        const body = JSON.stringify({
-          name:       data.name,
-          type:       data.type,
-          category:   data.category,
-          duration:   data.duration,
-          fileBase64: data.fileBase64 ?? null,
-          fileName:   data.fileName  ?? null,
-          mimeType:   data.mimeType  ?? null,
-        });
-        const res  = await fetch(APPS_SCRIPT_URL, {
-          method:  "POST",
-          headers: { "Content-Type": "text/plain" },
-          body,
-        });
-        const text = await res.text();
+    try {
+      if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
         try {
-          const result = JSON.parse(text);
-          if (result.sound) {
-            setSounds((prev) =>
-              prev.map((s) => s.id === tempId
-                ? { ...s, id: result.sound.id, fileUrl: result.sound.fileUrl, fileId: result.sound.fileId }
-                : s
-              )
-            );
+          const body = JSON.stringify({
+            name:       data.name,
+            type:       data.type,
+            category:   data.category,
+            duration:   data.duration,
+            fileBase64: data.fileBase64 ?? null,
+            fileName:   data.fileName  ?? null,
+            mimeType:   data.mimeType  ?? null,
+          });
+          const res  = await fetch(APPS_SCRIPT_URL, {
+            method:  "POST",
+            headers: { "Content-Type": "text/plain" },
+            body,
+          });
+          const text = await res.text();
+          try {
+            const result = JSON.parse(text);
+            if (result.sound) {
+              setSounds((prev) =>
+                prev.map((s) => s.id === tempId
+                  ? { ...s, id: result.sound.id, fileUrl: result.sound.fileUrl, fileId: result.sound.fileId }
+                  : s
+                )
+              );
+            }
+          } catch {
+            /* відповідь не JSON — але дані вже збережено в Drive+Sheets */
           }
-        } catch {
-          /* відповідь не JSON — але дані вже збережено в Drive+Sheets */
+        } catch (networkErr) {
+          throw new Error("Мережева помилка: " + networkErr.message);
         }
-      } catch (networkErr) {
-        console.error("[addSound] Network error:", networkErr);
-        throw new Error("Мережева помилка: " + networkErr.message);
       }
+      showToast(`Added "${data.name}" — try searching for it`);
+    } finally {
+      setIsUploading(false);
     }
-
-    showToast(`Added "${data.name}" — try searching for it`);
   }, [showToast]);
 
   const editSound = useCallback(async (id, updates) => {
@@ -828,11 +832,15 @@ export default function App() {
                   : <div className="sound-count-num">{sounds.length}</div>}
                 <div className="sound-count-label">sounds in Cuddle</div>
               </div>
-              <button onClick={() => setShowUpload(true)} className="upload-trigger-btn"
-                title="Add a new sound to the library">
+              <button
+                onClick={() => !isUploading && setShowUpload(true)}
+                className={`upload-trigger-btn${isUploading ? " uploading" : ""}`}
+                disabled={isUploading}
+                title="Add a new sound to the library"
+              >
                 <UploadIcon size={16} strokeWidth={2.4} />
-                <span className="upload-trigger-label">Drop a new sound</span>
-                <span className="upload-trigger-short">Add</span>
+                <span className="upload-trigger-label">{isUploading ? "Uploading…" : "Drop a new sound"}</span>
+                <span className="upload-trigger-short">{isUploading ? "…" : "Add"}</span>
               </button>
             </div>
           </div>

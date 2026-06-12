@@ -153,6 +153,21 @@ select option { color: #fff; }
   font-family: inherit;
 }
 .upload-trigger-btn:active { transform: scale(.98); }
+@keyframes uploadFill {
+  from { background-size: 0% 100%; }
+  to   { background-size: 100% 100%; }
+}
+.upload-trigger-btn.uploading {
+  pointer-events: none;
+  background-image: linear-gradient(#F7CB07, #F7CB07);
+  background-size: 0% 100%;
+  background-repeat: no-repeat;
+  background-color: rgba(247,203,7,0.15);
+  border: 1px solid rgba(247,203,7,0.35);
+  box-shadow: none;
+  color: #1a1730;
+  animation: uploadFill 20s cubic-bezier(0.15, 0, 0.35, 1) forwards;
+}
 .upload-trigger-label { display: none; }
 .upload-trigger-short { display: inline; }
 @media (min-width: 640px) {

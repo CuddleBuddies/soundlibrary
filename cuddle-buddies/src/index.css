@@ -155,19 +155,28 @@ select option { color: #fff; }
 .upload-trigger-btn:active { transform: scale(.98); }
 @keyframes uploadFill {
   from { background-size: 0% 100%; }
-  to   { background-size: 100% 100%; }
+  to   { background-size: 110% 100%; }
+}
+@keyframes uploadGlow {
+  0%,100% { box-shadow: 0 0 16px rgba(247,203,7,0.35), 0 0 40px rgba(247,203,7,0.15); }
+  50%      { box-shadow: 0 0 24px rgba(247,203,7,0.55), 0 0 60px rgba(247,203,7,0.25); }
 }
 .upload-trigger-btn.uploading,
 .submit-btn.uploading {
   pointer-events: none;
-  background-image: linear-gradient(#F7CB07, #F7CB07);
+  background-image: linear-gradient(to right,
+    #F7CB07 0%,
+    #F7CB07 72%,
+    rgba(247,203,7,0.55) 88%,
+    rgba(247,203,7,0) 100%
+  );
   background-size: 0% 100%;
   background-repeat: no-repeat;
-  background-color: rgba(247,203,7,0.15);
-  border: 1px solid rgba(247,203,7,0.35);
-  box-shadow: none;
+  background-color: rgba(247,203,7,0.08);
+  border: 1px solid rgba(247,203,7,0.4);
   color: #1a1730;
-  animation: uploadFill 20s cubic-bezier(0.15, 0, 0.35, 1) forwards;
+  animation: uploadFill 20s cubic-bezier(0.15, 0, 0.35, 1) forwards,
+             uploadGlow 2s ease-in-out infinite;
 }
 .upload-trigger-label { display: none; }
 .upload-trigger-short { display: inline; }

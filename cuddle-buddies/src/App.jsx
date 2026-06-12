@@ -40,7 +40,7 @@ function PasswordGate({ children }) {
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
       padding: "24px",
-      background: "radial-gradient(1200px 800px at 12% -5%, #1d193c 0%, rgba(29,25,60,0) 55%), radial-gradient(1000px 700px at 0% 100%, #0e2734 0%, rgba(14,39,52,0) 50%), linear-gradient(160deg, #0b0d1b 0%, #0e0d20 45%, #081118 100%)",
+      background: "radial-gradient(1200px 800px at 12% -5%, #171430 0%, rgba(23,20,48,0) 55%), radial-gradient(1000px 700px at 0% 100%, #0b1f2a 0%, rgba(11,31,42,0) 50%), linear-gradient(160deg, #090a16 0%, #0b0a1a 45%, #060e13 100%)",
     }}>
       <div style={{
         width: "100%", maxWidth: "380px",
@@ -150,6 +150,14 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
   reader.readAsDataURL(file);
 });
 
+const getFileDuration = (file) => new Promise((resolve) => {
+  const url   = URL.createObjectURL(file);
+  const audio = new Audio();
+  audio.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(audio.duration); };
+  audio.onerror          = () => { URL.revokeObjectURL(url); resolve(null); };
+  audio.src = url;
+});
+
 const normalizeRemoteSound = (s) => {
   try {
     const rawCat  = String(s.category || "SFX");
@@ -189,10 +197,21 @@ function Waveform({ wave, progress = 0, active = false }) {
 
 /* ─── SoundCard ─── */
 
-function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onSeek, onFilterMain, onFilterSub }) {
+function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onSeek, onFilterMain, onFilterSub, onDurationLoad }) {
   const mainCat  = findMainCat(sound.category);
   const catColor = CAT_COLORS[mainCat] ?? "rgba(255,255,255,.4)";
   const isSubcat = mainCat && CATEGORY_TREE[mainCat]?.includes(sound.category);
+
+  useEffect(() => {
+    if (!sound.fileUrl || sound._meta) return;
+    const audio = new Audio();
+    audio.onloadedmetadata = () => {
+      if (!isNaN(audio.duration) && isFinite(audio.duration))
+        onDurationLoad?.(sound.id, audio.duration);
+    };
+    audio.src = sound.fileUrl;
+    return () => { audio.src = ""; };
+  }, [sound.id, sound.fileUrl, sound._meta]); // eslint-disable-line
 
   const handleWaveClick = (e) => {
     if (!isPlaying || !onSeek) return;
@@ -391,11 +410,13 @@ function UploadPanel({ onAdd, onClose }) {
         mimeType   = fileObj.type || "audio/mpeg";
       }
 
+      const duration = fileObj ? ((await getFileDuration(fileObj)) ?? 1) : 1;
       await onAdd({
         name:     name.trim(),
         type:     "Realistic",
         category: subCat || mainCat,
-        duration: 1 + Math.random() * 3,
+        duration,
+        _meta:    !!fileObj,
         wave:     makeWave(name + Date.now()),
         fileBase64, fileName, mimeType,
       });
@@ -725,6 +746,10 @@ export default function App() {
     }
   }, [showToast]);
 
+  const handleDurationLoad = useCallback((id, duration) => {
+    setSounds((prev) => prev.map((s) => s.id === id ? { ...s, duration, _meta: true } : s));
+  }, []);
+
   const editSound = useCallback(async (id, updates) => {
     setSounds((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s));
     showToast(`Updated "${updates.name}"`);
@@ -941,6 +966,7 @@ export default function App() {
                   onEdit={(id) => setEditingSound(sounds.find((s) => s.id === id))}
                   onFilterMain={(main) => { setActiveMainCat(main); setActiveSubCat(null); }}
                   onFilterSub={(sub) => { setActiveMainCat(findMainCat(sub)); setActiveSubCat(sub); }}
+                  onDurationLoad={handleDurationLoad}
                 />
               ))}
             </div>

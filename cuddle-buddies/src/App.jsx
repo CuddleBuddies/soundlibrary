@@ -40,7 +40,7 @@ function PasswordGate({ children }) {
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
       padding: "24px",
-      background: "radial-gradient(1200px 800px at 12% -5%, #171430 0%, rgba(23,20,48,0) 55%), radial-gradient(1000px 700px at 0% 100%, #0b1f2a 0%, rgba(11,31,42,0) 50%), linear-gradient(160deg, #090a16 0%, #0b0a1a 45%, #060e13 100%)",
+      background: "#050814",
     }}>
       <div style={{
         width: "100%", maxWidth: "380px",
@@ -222,6 +222,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
   return (
     <div
       className="sound-card"
+      onDoubleClick={() => onDownload(sound)}
       style={{
         position: "relative",
         boxShadow: isPlaying
@@ -261,7 +262,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
             <span className="dur-label">
               <ClockIcon size={13} /> {fmtDur(sound.duration)}
             </span>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 4, flexWrap: "nowrap", flexShrink: 0 }}>
               <button className="type-badge cat-filter-btn" onClick={() => onFilterMain?.(mainCat ?? sound.category)}>
                 <span className="type-dot" style={{ background: catColor, boxShadow: `0 0 6px ${catColor}` }} />
                 {mainCat ?? sound.category}
@@ -837,6 +838,8 @@ export default function App() {
         <div className="orb orb-blue"  />
         <div className="orb orb-green" />
         <div className="orb orb-teal"  />
+        <div className="orb orb-deep"  />
+        <div className="aurora-overlay" />
       </div>
 
       <div className="page-content">

@@ -210,7 +210,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
         onDurationLoad?.(sound.id, audio.duration);
     };
     audio.src = sound.fileUrl;
-    return () => { audio.src = ""; };
+    return () => { audio.pause(); audio.src = ""; };
   }, [sound.id, sound.fileUrl, sound._meta]); // eslint-disable-line
 
   const handleWaveClick = (e) => {
@@ -222,7 +222,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
   return (
     <div
       className="sound-card"
-      onDoubleClick={() => onDownload(sound)}
+      onDoubleClick={(e) => { if (e.target.closest("button")) return; onDownload(sound); }}
       style={{
         position: "relative",
         boxShadow: isPlaying
@@ -544,6 +544,7 @@ export default function App() {
   const rafRef         = useRef(null);
   const fadeRef        = useRef(null);
   const gridInitRef    = useRef(true);
+  const toastTimerRef  = useRef(null);
 
   useEffect(() => {
     let t;
@@ -626,8 +627,8 @@ export default function App() {
 
   const showToast = useCallback((msg) => {
     setToast(msg);
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => setToast(null), 2600);
+    clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2600);
   }, []);
 
   /* playback */

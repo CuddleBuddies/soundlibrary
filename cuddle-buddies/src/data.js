@@ -35,7 +35,7 @@ const RAW_SOUNDS = [
   { name: "Glass Ding Confirm",  category: "UI sounds",        duration: 0.6  },
   { name: "Cuddle Purr Ambient", category: "Indoors",          duration: 9.5  },
   { name: "Boomy Impact Slam",   category: "Impacts",          duration: 1.4  },
-  { name: "Laser Zap Swoosh",    category: "SFX",              duration: 0.9  },
+  { name: "Laser Zap Swoosh",    category: "UI sounds",        duration: 0.9  },
   { name: "Wholesome Chime Up",  category: "Transitions",      duration: 1.0  },
 ];
 

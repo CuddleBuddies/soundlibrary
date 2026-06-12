@@ -485,8 +485,11 @@ function UploadPanel({ onAdd, onClose }) {
           <p style={{ color: "#ff6b6b", fontSize: 12, margin: 0, textAlign: "center" }}>{uploadErr}</p>
         )}
 
-        <button type="submit" disabled={!canSubmit} className="submit-btn"
-          style={{ background: "#F7CB07", color: "#1a1730", boxShadow: "0 10px 30px -10px rgba(247,203,7,0.6)" }}>
+        <button type="submit" disabled={!canSubmit} className={`submit-btn${uploading ? " uploading" : ""}`}
+          style={uploading
+            ? { color: "#1a1730" }
+            : { background: "#F7CB07", color: "#1a1730", boxShadow: "0 10px 30px -10px rgba(247,203,7,0.6)" }
+          }>
           {uploading
             ? <><span style={{ opacity: 0.7 }}>Uploading…</span></>
             : <><UploadIcon size={17} strokeWidth={2.4} /> Add to library</>}

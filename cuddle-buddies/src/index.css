@@ -157,7 +157,8 @@ select option { color: #fff; }
   from { background-size: 0% 100%; }
   to   { background-size: 100% 100%; }
 }
-.upload-trigger-btn.uploading {
+.upload-trigger-btn.uploading,
+.submit-btn.uploading {
   pointer-events: none;
   background-image: linear-gradient(#F7CB07, #F7CB07);
   background-size: 0% 100%;

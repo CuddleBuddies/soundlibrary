@@ -335,11 +335,11 @@ select option { color: #fff; }
   border: 1px solid rgba(255,255,255,.15);
   background: rgba(255,255,255,.07);
   backdrop-filter: blur(12px);
-  padding: 10px 13px 36px;
+  padding: 20px 13px 20px;
   transition: background .2s, border-color .2s, box-shadow .2s;
   animation: cardIn 0.3s cubic-bezier(.16,1,.3,1) both;
 }
-@media (min-width: 640px) { .sound-card { padding: 13px 16px 36px; } }
+@media (min-width: 640px) { .sound-card { padding: 20px 16px 20px; } }
 .sound-card:hover {
   background: rgba(255,255,255,.11);
   border-color: rgba(132,206,224,.65);
@@ -366,7 +366,7 @@ select option { color: #fff; }
 
 .sound-body  { min-width: 0; flex: 1; }
 .sound-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.sound-name  { color: #fff; font-weight: 600; letter-spacing: -.01em; font-size: 14px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sound-name  { color: #fff; font-weight: 600; letter-spacing: -.01em; font-size: 16px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .type-badge  { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 9999px; color: rgba(255,255,255,.85); border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); white-space: nowrap; flex-shrink: 0; font-family: inherit; }
 .cat-filter-btn { cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
 .cat-filter-btn:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.35); color: #fff; }
@@ -421,9 +421,11 @@ select option { color: #fff; }
   border: none;
   background: none;
   cursor: pointer;
-  transition: color .15s;
+  opacity: 0;
+  transition: color .15s, opacity .15s;
   font-family: inherit;
 }
+.sound-card:hover .dl-btn { opacity: 0.85; }
 .dl-btn:hover { color: #fff; }
 
 /* ── waveform ── */

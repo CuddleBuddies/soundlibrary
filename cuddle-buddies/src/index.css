@@ -320,9 +320,9 @@ select option { color: #fff; }
 .empty-title   { color: #fff; font-weight: 500; margin: 0 0 4px; }
 .empty-sub     { color: rgba(255,255,255,.45); font-size: 13px; margin: 0; }
 
-.cards-grid { display: grid; gap: 16px; }
-@media (min-width: 640px)  { .cards-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .cards-grid { grid-template-columns: repeat(3, 1fr); } }
+.cards-grid { display: grid; gap: 12px; }
+@media (min-width: 540px) { .cards-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 800px) { .cards-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
 
 /* ── sound card ── */
 @keyframes cardIn {
@@ -372,7 +372,7 @@ select option { color: #fff; }
 .cat-filter-btn:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.35); color: #fff; }
 .type-dot    { width: 6px; height: 6px; border-radius: 9999px; flex-shrink: 0; }
 .wave-wrap   { margin-top: 5px; }
-.sound-meta-row { margin-top: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.sound-meta-row { margin-top: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .dur-label   { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(255,255,255,.55); margin-right: 4px; }
 .card-edit-btn {
   position: absolute;

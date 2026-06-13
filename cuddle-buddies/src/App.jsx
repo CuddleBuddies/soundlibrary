@@ -244,7 +244,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
         e.dataTransfer.setData("application/json", JSON.stringify({
           name: sound.name, fileUrl: sound.fileUrl,
         }));
-        sendCEP("CB_DRAG_START");
+        sendCEP("CB_DRAG_START", { sound: { name: sound.name, fileUrl: sound.fileUrl } });
       } : undefined}
       onDragEnd={isCEP ? () => sendCEP("CB_DRAG_END") : undefined}
       onDoubleClick={(e) => { if (e.target.closest("button")) return; handleAction(sound); }}

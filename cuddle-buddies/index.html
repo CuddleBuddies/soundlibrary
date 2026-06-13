@@ -1,16 +1,188 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>The Great Cuddle Buddies Library of Sounds</title>
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cuddle Buddies — Thumbnail Editor</title>
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://evanw.github.io/glfx.js/glfx.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body, #root { height: 100%; margin: 0; background: #1d1d1d; }
+  body { font-family: "Readex Pro", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+  textarea::-webkit-scrollbar { width: 6px; }
+  @keyframes logoSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes blob1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(160px, 80px) scale(1.15); }
+    66%      { transform: translate(60px, 220px) scale(0.95); }
+  }
+  @keyframes blob2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(-180px, -100px) scale(1.1); }
+    66%      { transform: translate(-80px, -240px) scale(0.9); }
+  }
+  @keyframes blob3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(120px, -120px) scale(1.2); }
+    66%      { transform: translate(-140px, 100px) scale(0.85); }
+  }
+  @keyframes sparkleOrbit {
+    from { transform: rotate(0deg) translateX(34px) rotate(0deg); }
+    to   { transform: rotate(360deg) translateX(34px) rotate(-360deg); }
+  }
+  @keyframes sparkleOrbitRev {
+    from { transform: rotate(0deg) translateX(28px) rotate(0deg); }
+    to   { transform: rotate(-360deg) translateX(28px) rotate(360deg); }
+  }
+  @keyframes sparkleTwinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.6); }
+    50%      { opacity: 1; transform: scale(1.1); }
+  }
+  @keyframes glimmerPulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.95); }
+    50%      { opacity: 0.75; transform: scale(1.1); }
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to   { transform: translateY(0); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes tooltipUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  @keyframes cuddlySparkle {
+    0%, 100% { opacity: 0; transform: scale(0.4); }
+    40%      { opacity: 1; transform: scale(1.2); }
+    60%      { opacity: 1; transform: scale(1); }
+  }
+  @keyframes imgFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes capyBreath {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.02); }
+  }
+  @keyframes overlayFadeIn {
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to   { opacity: 1; backdrop-filter: blur(8px); }
+  }
+  @keyframes overlayPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.04); }
+  }
+  @keyframes mintGlow {
+    0%, 100% {
+      box-shadow:
+        0 0 0 0 rgba(122,224,191,0.45),
+        0 0 18px 2px rgba(122,224,191,0.35),
+        0 0 38px 8px rgba(122,224,191,0.18);
+    }
+    50% {
+      box-shadow:
+        0 0 0 4px rgba(122,224,191,0.10),
+        0 0 26px 6px rgba(122,224,191,0.55),
+        0 0 60px 16px rgba(122,224,191,0.28);
+    }
+  }
+  .cuddly-sparkle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 0 6px 1.5px rgba(255,255,255,0.9);
+    animation: cuddlySparkle 2.4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Auth gate -->
+<div id="auth-gate" style="display:none; position:fixed; inset:0; background:#111318; z-index:9999; display:flex; align-items:center; justify-content:center;">
+  <div style="background:#1a1d24; border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:40px 36px 36px; width:360px; text-align:center; box-shadow:0 24px 80px rgba(0,0,0,0.7);">
+    <img src="assets/capybara-center.png" alt="" style="width:80px;height:80px;object-fit:contain;margin:0 auto 16px;display:block;" />
+    <div style="font-family:'Readex Pro',sans-serif; font-size:22px; font-weight:700; color:#fff; margin-bottom:6px;">Cuddle Buddies</div>
+    <div style="font-family:'Readex Pro',sans-serif; font-size:13px; color:rgba(255,255,255,0.45); margin-bottom:24px;">Thumbnail Editor — enter password to continue</div>
+    <input id="auth-input" type="password" placeholder="Password"
+      style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:11px 14px;color:#fff;font-family:'Readex Pro',sans-serif;font-size:14px;outline:none;margin-bottom:12px;"
+      onkeydown="if(event.key==='Enter')submitAuth()" />
+    <div id="auth-error" style="font-family:'Readex Pro',sans-serif;font-size:12px;color:#ff6b6b;min-height:18px;margin-bottom:10px;"></div>
+    <button onclick="submitAuth()"
+      style="width:100%;height:44px;border-radius:11px;background:#7AE0BF;color:#0a3838;font-family:'Readex Pro',sans-serif;font-size:14px;font-weight:700;border:none;cursor:pointer;box-shadow:0 3px 0 0 #4a9c80;">
+      Enter
+    </button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    function getCookie(name) {
+      return document.cookie.split(';').some(c => c.trim().startsWith(name + '='));
+    }
+    var gate = document.getElementById('auth-gate');
+    if (getCookie('cb_auth')) {
+      gate.style.display = 'none';
+    } else {
+      gate.style.display = 'flex';
+      // hide app scripts until authed
+      document.querySelectorAll('script[data-app]').forEach(function(s){ s.type='text/plain'; });
+    }
+  })();
+
+  function submitAuth() {
+    var pw = document.getElementById('auth-input').value;
+    var err = document.getElementById('auth-error');
+    err.textContent = '';
+    fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+    .then(function(res) {
+      if (res.ok) {
+        document.getElementById('auth-gate').style.display = 'none';
+        location.reload();
+      } else {
+        err.textContent = 'Incorrect password';
+        document.getElementById('auth-input').value = '';
+        document.getElementById('auth-input').focus();
+      }
+    }).catch(function(){ err.textContent = 'Network error, try again'; });
+  }
+</script>
+
+<script type="text/babel" src="capybara-logo.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="library.jsx"></script>
+<script type="text/babel" src="sidebar.jsx"></script>
+<script type="text/babel" src="adjustments.jsx"></script>
+<script type="text/babel" src="workspace.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
 </html>

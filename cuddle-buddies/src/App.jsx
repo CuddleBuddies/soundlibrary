@@ -7,6 +7,15 @@ import {
 import { SOUNDS, CATEGORIES, CATEGORY_TREE, MAIN_CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
 
+/* Визначаємо чи відкрито сайт всередині CEP-панелі Premiere Pro */
+const isCEP = window.parent !== window;
+
+/* Надсилає команду в CEP-панель (якщо ми всередині неї) */
+const sendCEP = (type, payload) => {
+  if (!isCEP) return;
+  window.parent.postMessage({ type, ...payload }, "*");
+};
+
 /* ─── Вставте сюди посилання після деплою Apps Script ─── */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW5gnkIO6zlHFs7BHPhlj6q8hdHhppHBESula9YpMspMBX-D8_6aH0Gbd1FSz_DtFd/exec";
 
@@ -219,12 +228,29 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
     onSeek(sound.id, Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
   };
 
+  const handleAction = (sound) => {
+    if (isCEP && sound.fileUrl) {
+      sendCEP("CB_ADD_TO_TIMELINE", { sound: { name: sound.name, fileUrl: sound.fileUrl } });
+    } else {
+      onDownload(sound);
+    }
+  };
+
   return (
     <div
       className="sound-card"
-      onDoubleClick={(e) => { if (e.target.closest("button")) return; onDownload(sound); }}
+      draggable={isCEP && !!sound.fileUrl}
+      onDragStart={isCEP && sound.fileUrl ? (e) => {
+        e.dataTransfer.setData("application/json", JSON.stringify({
+          name: sound.name, fileUrl: sound.fileUrl,
+        }));
+        sendCEP("CB_DRAG_START");
+      } : undefined}
+      onDragEnd={isCEP ? () => sendCEP("CB_DRAG_END") : undefined}
+      onDoubleClick={(e) => { if (e.target.closest("button")) return; handleAction(sound); }}
       style={{
         position: "relative",
+        cursor: isCEP && sound.fileUrl ? "grab" : "default",
         boxShadow: isPlaying
           ? "0 0 0 1px rgba(247,203,7,0.5), 0 12px 40px -12px rgba(247,203,7,0.35)"
           : "0 8px 30px -16px rgba(0,0,0,0.6)",
@@ -287,10 +313,10 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
       </button>
 
       <button
-        onClick={() => onDownload(sound)}
+        onClick={() => handleAction(sound)}
         className="dl-btn"
-        aria-label={`Download ${sound.name}`}
-        title="Download"
+        aria-label={isCEP ? `Add ${sound.name} to Timeline` : `Download ${sound.name}`}
+        title={isCEP ? "Add to Timeline" : "Download"}
       >
         <DownloadIcon size={18} />
       </button>

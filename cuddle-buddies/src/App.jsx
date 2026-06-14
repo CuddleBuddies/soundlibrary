@@ -837,19 +837,26 @@ export default function App() {
   /* filtering */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return sounds.filter((s) => {
-      if (activeSubCat) {
-        if (s.category !== activeSubCat) return false;
-      } else if (activeMainCat) {
-        const subs = CATEGORY_TREE[activeMainCat];
-        if (s.category !== activeMainCat && !subs.includes(s.category)) return false;
-      }
-      if (q) {
-        const hay = `${s.name} ${s.category}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
+    return sounds
+      .filter((s) => {
+        if (activeSubCat) {
+          if (s.category !== activeSubCat) return false;
+        } else if (activeMainCat) {
+          const subs = CATEGORY_TREE[activeMainCat];
+          if (s.category !== activeMainCat && !subs.includes(s.category)) return false;
+        }
+        if (q) {
+          const hay = `${s.name} ${s.category}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (!a.addedAt && !b.addedAt) return 0;
+        if (!a.addedAt) return 1;
+        if (!b.addedAt) return -1;
+        return b.addedAt.localeCompare(a.addedAt);
+      });
   }, [sounds, query, activeMainCat, activeSubCat]);
 
   const catCounts = useMemo(() => {

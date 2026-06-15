@@ -151,16 +151,19 @@ const VFX_PLACEHOLDERS = [
   "Lens Flare Gold", "Dust Particles", "Color Bleed",
 ].map((title, i) => ({ id: `vfx-p-${i}`, title, previewUrl: null, rawUrl: null }));
 
-const getPreviewUrl = (url) => {
+const getPreviewUrl = (url, offset = 0, crop = "fill") => {
   if (!url) return null;
-  return url.replace("/upload/", "/upload/du_5,f_webm,q_auto,w_400/");
+  const so = offset > 0 ? `so_${offset},` : "";
+  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,du_5,f_webm,vc_vp9,q_auto,w_400/`);
 };
 
 const normalizeVfxItem = (v) => ({
-  id:         String(v.ID || v.id || Math.random()),
-  title:      String(v.Title || v.title || "Untitled"),
-  previewUrl: v.Preview_URL || v.previewUrl || null,
-  rawUrl:     v.Raw_URL     || v.rawUrl     || null,
+  id:            String(v.ID || v.id || Math.random()),
+  title:         String(v.Title || v.title || "Untitled"),
+  previewUrl:    v.Preview_URL || v.previewUrl || null,
+  rawUrl:        v.Raw_URL     || v.rawUrl     || null,
+  previewOffset: Number(v.Preview_Offset || v.previewOffset || 0),
+  previewCrop:   String(v.Preview_Crop || v.previewCrop || "fill"),
 });
 
 const downloadBlob = (filename, text, mime = "application/json") => {
@@ -346,9 +349,9 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
 
 /* ─── VFXCard ─── */
 
-function VFXCard({ item, onDownload }) {
+function VFXCard({ item, onDownload, onEdit }) {
   const videoRef   = useRef(null);
-  const previewUrl = getPreviewUrl(item.previewUrl);
+  const previewUrl = getPreviewUrl(item.previewUrl, item.previewOffset, item.previewCrop);
 
   const handleEnter = () => { const v = videoRef.current; if (v) v.play().catch(() => {}); };
   const handleLeave = () => { const v = videoRef.current; if (v) { v.pause(); v.currentTime = 0; } };
@@ -378,13 +381,11 @@ function VFXCard({ item, onDownload }) {
         )}
       </div>
       <div className="vfx-footer">
+        <button className="vfx-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Edit">
+          <PencilIcon size={13} />
+        </button>
         <span className="vfx-title">{item.title}</span>
-        <button
-          className="vfx-dl-btn"
-          onClick={() => onDownload(item)}
-          title="Download"
-          disabled={!item.rawUrl}
-        >
+        <button className="vfx-dl-btn" onClick={() => onDownload(item)} title="Download" disabled={!item.rawUrl}>
           <DownloadIcon size={15} />
         </button>
       </div>
@@ -615,6 +616,84 @@ function UploadPanel({ onAdd, onClose }) {
   );
 }
 
+/* ─── VFXEditPanel ─── */
+
+function VFXEditPanel({ item, onSave, onDelete, onClose }) {
+  const [title,         setTitle]         = useState(item.title);
+  const [previewOffset, setPreviewOffset] = useState(item.previewOffset || 0);
+  const [previewCrop,   setPreviewCrop]   = useState(item.previewCrop   || "fill");
+  const [saving,        setSaving]        = useState(false);
+  const [confirmDel,    setConfirmDel]    = useState(false);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      await onSave(item.id, { title: title.trim(), previewOffset: Number(previewOffset), previewCrop });
+      onClose();
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="upload-panel">
+      <button type="button" onClick={onClose} aria-label="Close" className="upload-close-btn">
+        <XIcon size={17} />
+      </button>
+      <div className="upload-heading">
+        <div className="upload-icon-wrap" style={{ background: "rgba(166,181,233,.15)", border: "1px solid rgba(166,181,233,.35)", color: "#A6B5E9" }}>
+          <PencilIcon size={18} />
+        </div>
+        <div>
+          <h2 className="upload-title">Edit visual</h2>
+          <p className="upload-subtitle">{item.title}</p>
+        </div>
+      </div>
+      <form onSubmit={handleSave} className="upload-form">
+        <div>
+          <label className="form-label">Title</label>
+          <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+        <div className="form-grid2">
+          <div>
+            <label className="form-label">Preview start <span style={{ color: "rgba(255,255,255,.35)", fontSize: 11 }}>(seconds)</span></label>
+            <input className="form-input" type="number" min="0" max="300" step="1"
+              value={previewOffset} onChange={(e) => setPreviewOffset(e.target.value)} placeholder="0" />
+          </div>
+          <div>
+            <label className="form-label">Crop mode</label>
+            <div className="select-wrap">
+              <select className="form-input form-select" value={previewCrop} onChange={(e) => setPreviewCrop(e.target.value)}>
+                <option value="fill" style={{ background: "#1c1b3a" }}>Fill (crop to fit)</option>
+                <option value="fit"  style={{ background: "#1c1b3a" }}>Fit (full video)</option>
+                <option value="pad"  style={{ background: "#1c1b3a" }}>Pad (dark border)</option>
+              </select>
+              <ChevronDownIcon size={16} className="select-chevron" />
+            </div>
+          </div>
+        </div>
+        <button type="submit" disabled={saving} className="submit-btn"
+          style={{ background: "#A6B5E9", color: "#1a1730", boxShadow: "0 10px 30px -10px rgba(166,181,233,0.5)" }}>
+          {saving ? "Saving…" : <><CheckIcon size={17} strokeWidth={2.4} /> Save changes</>}
+        </button>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 12 }}>
+          {!confirmDel ? (
+            <button type="button" onClick={() => setConfirmDel(true)}
+              style={{ width: "100%", padding: "9px", borderRadius: 10, border: "1px solid rgba(255,80,80,.3)", background: "rgba(255,80,80,.08)", color: "#ff6b6b", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Delete visual
+            </button>
+          ) : (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setConfirmDel(false)} className="del-cancel-btn" style={{ flex: 1 }}>Cancel</button>
+              <button type="button" onClick={() => { onDelete(item.id); onClose(); }} className="del-confirm-btn" style={{ flex: 1 }}>Confirm delete</button>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
 /* ─── VFXUploadPanel ─── */
 
 function VFXUploadPanel({ onAdd, onClose }) {
@@ -706,6 +785,7 @@ export default function App() {
   const [activeTab,     setActiveTab]     = useState("sfx");
   const [vfxItems,      setVfxItems]      = useState(VFX_PLACEHOLDERS);
   const [loadingVfx,    setLoadingVfx]    = useState(false);
+  const [editingVfx,    setEditingVfx]    = useState(null);
   const vfxLoadedRef = useRef(false);
 
   const [sounds,        setSounds]        = useState([]);
@@ -822,7 +902,7 @@ export default function App() {
   /* Escape closes modals */
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") { setShowUpload(false); setEditingSound(null); }
+      if (e.key === "Escape") { setShowUpload(false); setEditingSound(null); setEditingVfx(null); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1011,6 +1091,32 @@ export default function App() {
     showToast(`Downloaded "${snd.name}"`);
   }, [showToast]);
 
+  const editVfx = useCallback(async (id, updates) => {
+    setVfxItems((prev) => prev.map((v) => v.id === id ? { ...v, ...updates } : v));
+    showToast(`Updated "${updates.title}"`);
+    if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST", headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "updateVfx", id, ...updates }),
+        });
+      } catch { /* silent */ }
+    }
+  }, [showToast]);
+
+  const deleteVfx = useCallback(async (id) => {
+    setVfxItems((prev) => prev.filter((v) => v.id !== id));
+    showToast("Visual deleted");
+    if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST", headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "deleteVfx", id }),
+        });
+      } catch { /* silent */ }
+    }
+  }, [showToast]);
+
   const addVfx = useCallback(async (data) => {
     setIsUploading(true);
     const tempId = `vtmp_${Date.now().toString(36)}`;
@@ -1159,7 +1265,7 @@ export default function App() {
             ) : (
               <div className="vfx-grid">
                 {vfxItems.map((item) => (
-                  <VFXCard key={item.id} item={item} onDownload={downloadVfx} />
+                  <VFXCard key={item.id} item={item} onDownload={downloadVfx} onEdit={setEditingVfx} />
                 ))}
               </div>
             )}
@@ -1277,6 +1383,22 @@ export default function App() {
               {activeTab === "vfx"
                 ? <VFXUploadPanel onAdd={addVfx} onClose={() => setShowUpload(false)} />
                 : <UploadPanel    onAdd={addSound} onClose={() => setShowUpload(false)} />}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingVfx && (
+        <div className="modal-overlay">
+          <div className="modal-backdrop anim-fade" onClick={() => setEditingVfx(null)} />
+          <div className="modal-positioner">
+            <div className="modal-box anim-pop" role="dialog" aria-modal="true">
+              <VFXEditPanel
+                item={editingVfx}
+                onSave={editVfx}
+                onDelete={deleteVfx}
+                onClose={() => setEditingVfx(null)}
+              />
             </div>
           </div>
         </div>

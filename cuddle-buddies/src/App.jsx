@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   SearchIcon, PlayIcon, PauseIcon, DownloadIcon, UploadIcon,
   MusicIcon, XIcon, ClockIcon,
-  CheckIcon, FileIcon, ChevronDownIcon, PencilIcon,
+  CheckIcon, FileIcon, ChevronDownIcon, PencilIcon, FilmIcon,
 } from "./icons";
 import { SOUNDS, CATEGORIES, CATEGORY_TREE, MAIN_CATEGORIES, makeWave } from "./data";
 import logoSrc from "/assets/logo.png";
@@ -142,6 +142,26 @@ const findMainCat = (cat) => {
   }
   return MAIN_CATEGORIES.includes(cat) ? cat : null;
 };
+
+/* ─── VFX helpers ─── */
+
+const VFX_PLACEHOLDERS = [
+  "Smoke Burst Alpha", "Light Leak Warm", "Glitch Static",
+  "Bokeh Float", "Rain Overlay", "Film Grain Texture",
+  "Lens Flare Gold", "Dust Particles", "Color Bleed",
+].map((title, i) => ({ id: `vfx-p-${i}`, title, previewUrl: null, rawUrl: null }));
+
+const getPreviewUrl = (url) => {
+  if (!url) return null;
+  return url.replace("/upload/", "/upload/du_5,f_webm,q_auto,w_400/");
+};
+
+const normalizeVfxItem = (v) => ({
+  id:         String(v.ID || v.id || Math.random()),
+  title:      String(v.Title || v.title || "Untitled"),
+  previewUrl: v.Preview_URL || v.previewUrl || null,
+  rawUrl:     v.Raw_URL     || v.rawUrl     || null,
+});
 
 const downloadBlob = (filename, text, mime = "application/json") => {
   const blob = new Blob([text], { type: mime });
@@ -320,6 +340,55 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
       >
         <DownloadIcon size={18} />
       </button>
+    </div>
+  );
+}
+
+/* ─── VFXCard ─── */
+
+function VFXCard({ item, onDownload }) {
+  const videoRef   = useRef(null);
+  const previewUrl = getPreviewUrl(item.previewUrl);
+
+  const handleEnter = () => { const v = videoRef.current; if (v) v.play().catch(() => {}); };
+  const handleLeave = () => { const v = videoRef.current; if (v) { v.pause(); v.currentTime = 0; } };
+
+  return (
+    <div
+      className="vfx-card"
+      draggable={isCEP && !!item.rawUrl}
+      onDragStart={isCEP && item.rawUrl ? (e) => {
+        e.dataTransfer.setData("application/json", JSON.stringify({ name: item.title, fileUrl: item.rawUrl }));
+        sendCEP("CB_DRAG_START", { sound: { name: item.title, fileUrl: item.rawUrl } });
+      } : undefined}
+      onDragEnd={isCEP ? () => sendCEP("CB_DRAG_END") : undefined}
+      onDoubleClick={() => {
+        if (isCEP && item.rawUrl) sendCEP("CB_ADD_TO_TIMELINE", { sound: { name: item.title, fileUrl: item.rawUrl } });
+        else onDownload(item);
+      }}
+    >
+      <div className="vfx-thumb" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+        {previewUrl ? (
+          <video ref={videoRef} src={previewUrl} muted loop playsInline preload="metadata" className="vfx-video" />
+        ) : (
+          <div className="vfx-thumb-empty">
+            <FilmIcon size={28} style={{ opacity: 0.3 }} />
+            <span>Coming soon</span>
+          </div>
+        )}
+      </div>
+      <div className="vfx-footer">
+        <span className="vfx-title">{item.title}</span>
+        <button
+          className="vfx-dl-btn"
+          onClick={() => onDownload(item)}
+          title="Download"
+          disabled={!item.rawUrl}
+        >
+          <DownloadIcon size={15} />
+        </button>
+      </div>
+      <span className="vfx-love">Made with love</span>
     </div>
   );
 }
@@ -550,6 +619,11 @@ function UploadPanel({ onAdd, onClose }) {
 /* ─── App ─── */
 
 export default function App() {
+  const [activeTab,     setActiveTab]     = useState("sfx");
+  const [vfxItems,      setVfxItems]      = useState(VFX_PLACEHOLDERS);
+  const [loadingVfx,    setLoadingVfx]    = useState(false);
+  const vfxLoadedRef = useRef(false);
+
   const [sounds,        setSounds]        = useState([]);
   const [loadingData,   setLoadingData]   = useState(true);
   const [query,         setQuery]         = useState("");
@@ -571,6 +645,25 @@ export default function App() {
   const fadeRef        = useRef(null);
   const gridInitRef    = useRef(true);
   const toastTimerRef  = useRef(null);
+
+  /* Body VFX theme class */
+  useEffect(() => {
+    document.body.classList.toggle("theme-vfx", activeTab === "vfx");
+    return () => document.body.classList.remove("theme-vfx");
+  }, [activeTab]);
+
+  /* Load VFX data on first tab switch */
+  useEffect(() => {
+    if (activeTab !== "vfx" || vfxLoadedRef.current) return;
+    vfxLoadedRef.current = true;
+    if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") return;
+    setLoadingVfx(true);
+    fetch(`${APPS_SCRIPT_URL}?sheet=VFX_Data`)
+      .then((r) => r.json())
+      .then((data) => { if (data.vfx?.length) setVfxItems(data.vfx.map(normalizeVfxItem)); })
+      .catch(() => {})
+      .finally(() => setLoadingVfx(false));
+  }, [activeTab]);
 
   useEffect(() => {
     let t;
@@ -834,6 +927,21 @@ export default function App() {
     showToast(`Downloaded "${snd.name}"`);
   }, [showToast]);
 
+  const downloadVfx = useCallback(async (item) => {
+    if (!item.rawUrl) { showToast("No file yet — coming soon!"); return; }
+    try {
+      showToast(`Downloading "${item.title}"…`);
+      const res  = await fetch(item.rawUrl);
+      const blob = await res.blob();
+      const ext  = item.rawUrl.split(".").pop().split("?")[0].toLowerCase() || "mp4";
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url; a.download = `${item.title.replace(/[\\/:*?"<>|]/g, "_")}.${ext}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch { if (item.rawUrl) window.open(item.rawUrl, "_blank"); }
+  }, [showToast]);
+
   /* filtering */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -867,7 +975,7 @@ export default function App() {
 
   return (
     <PasswordGate>
-    <div className="app-root">
+    <div className={`app-root${activeTab === "vfx" ? " theme-vfx" : ""}`}>
       <div className="orbs-container">
         <div className="orb orb-blue"  />
         <div className="orb orb-green" />
@@ -887,15 +995,26 @@ export default function App() {
               <h1 className="header-title">
                 <span className="header-title-gradient">Cuddle Buddies</span>
                 <br />
-                <span className="header-title-plain">The Great Library of Sounds</span>
+                <span className="header-title-plain">The Great Library of Cuddles</span>
               </h1>
             </div>
             <div className="header-actions">
               <div className="sound-count">
-                {loadingData
-                  ? <div className="sound-count-num" style={{ fontSize: 18, opacity: 0.5 }}>…</div>
-                  : <div className="sound-count-num">{sounds.length}</div>}
-                <div className="sound-count-label">sounds in Cuddle</div>
+                {activeTab === "sfx" ? (
+                  <>
+                    {loadingData
+                      ? <div className="sound-count-num" style={{ fontSize: 18, opacity: 0.5 }}>…</div>
+                      : <div className="sound-count-num">{sounds.length}</div>}
+                    <div className="sound-count-label">sounds in Cuddle</div>
+                  </>
+                ) : (
+                  <>
+                    {loadingVfx
+                      ? <div className="sound-count-num" style={{ fontSize: 18, opacity: 0.5 }}>…</div>
+                      : <div className="sound-count-num">{vfxItems.length}</div>}
+                    <div className="sound-count-label">clips in Cuddle</div>
+                  </>
+                )}
               </div>
               <button
                 onClick={() => !isUploading && setShowUpload(true)}
@@ -911,7 +1030,31 @@ export default function App() {
           </div>
         </header>
 
-        <section className="filters-section">
+        <div className="tab-switcher-wrap">
+          <div className="tab-switcher">
+            <button className={`tab-btn${activeTab === "sfx" ? " tab-active" : ""}`} onClick={() => setActiveTab("sfx")}>SFX</button>
+            <button className={`tab-btn${activeTab === "vfx" ? " tab-active" : ""}`} onClick={() => setActiveTab("vfx")}>VFX</button>
+          </div>
+        </div>
+
+        {activeTab === "vfx" && (
+          <div className="vfx-section">
+            {loadingVfx ? (
+              <div className="empty-state">
+                <div className="empty-icon" style={{ opacity: 0.4, animation: "spin 1s linear infinite" }}><FilmIcon size={26} /></div>
+                <p className="empty-title" style={{ opacity: 0.5 }}>Loading VFX…</p>
+              </div>
+            ) : (
+              <div className="vfx-grid">
+                {vfxItems.map((item) => (
+                  <VFXCard key={item.id} item={item} onDownload={downloadVfx} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "sfx" && <><section className="filters-section">
           <div className="search-row">
             <div className="search-wrap">
               <SearchIcon size={20} className="search-icon" />
@@ -1011,6 +1154,7 @@ export default function App() {
             </div>
           )}
         </div>
+        </>}
       </div>
 
       {showUpload && (

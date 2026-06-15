@@ -359,8 +359,10 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
 function VFXCard({ item, onDownload, onEdit }) {
   const videoRef    = useRef(null);
   const [videoReady, setVideoReady] = useState(false);
-  const thumbnailUrl = getThumbnailUrl(item.previewUrl, item.previewOffset, item.previewCrop, item.previewGravity);
-  const previewUrl   = getPreviewUrl(item.previewUrl, item.previewOffset, item.previewCrop, item.previewGravity);
+  const thumbnailUrl = (item.previewUrl && item.previewUrl !== item.rawUrl)
+    ? item.previewUrl
+    : getThumbnailUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
+  const previewUrl = getPreviewUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
 
   const handleEnter = () => {
     const v = videoRef.current;
@@ -656,7 +658,7 @@ function VFXEditPanel({ item, onSave, onDelete, onClose }) {
   const [confirmDel,     setConfirmDel]     = useState(false);
   const editVidRef = useRef(null);
 
-  const liveThumbnail = getThumbnailUrl(item.previewUrl, previewOffset, previewCrop, previewGravity);
+  const liveThumbnail = getThumbnailUrl(item.rawUrl, previewOffset, previewCrop, previewGravity);
 
   const handleSeek = (e) => {
     const t = Number(e.target.value);
@@ -780,6 +782,7 @@ function VFXUploadPanel({ onAdd, onClose }) {
   const [title,         setTitle]         = useState("");
   const [uploading,     setUploading]     = useState(false);
   const [uploadErr,     setUploadErr]     = useState(null);
+  const [frameDark,     setFrameDark]     = useState(false);
   const fileRef     = useRef(null);
   const localVidRef = useRef(null);
 
@@ -807,6 +810,12 @@ function VFXUploadPanel({ onAdd, onClose }) {
     const mid = Math.floor(dur / 2);
     setPosterOffset(mid);
     v.currentTime = mid;
+  };
+
+  const handleSeeked = () => {
+    const v = localVidRef.current;
+    if (!v) return;
+    v.play().then(() => { v.pause(); setFrameDark(false); }).catch(() => setFrameDark(true));
   };
 
   const handleSlider = (e) => {
@@ -869,14 +878,20 @@ function VFXUploadPanel({ onAdd, onClose }) {
                 {Math.round(posterOffset)}s / {Math.round(duration)}s
               </span>}
             </label>
-            <div style={{ borderRadius: 10, overflow: "hidden", background: "#04111e", aspectRatio: "16/9" }}>
+            <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", background: "#04111e", aspectRatio: "16/9" }}>
               <video
                 ref={localVidRef}
                 src={localVideoUrl}
-                muted playsInline
+                muted playsInline preload="auto"
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 onLoadedMetadata={handleMetadata}
+                onSeeked={handleSeeked}
               />
+              {frameDark && (
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.55)", fontSize: 11, color: "rgba(255,255,255,.6)", textAlign: "center", padding: 12 }}>
+                  Browser can't preview this format.<br />Frame offset will be extracted by Cloudinary.
+                </div>
+              )}
             </div>
             {duration > 0 && (
               <input
@@ -1242,7 +1257,14 @@ export default function App() {
   }, [showToast]);
 
   const editVfx = useCallback(async (id, updates) => {
-    setVfxItems((prev) => prev.map((v) => v.id === id ? { ...v, ...updates } : v));
+    setVfxItems((prev) => prev.map((v) => {
+      if (v.id !== id) return v;
+      const merged = { ...v, ...updates };
+      return {
+        ...merged,
+        previewUrl: getThumbnailUrl(v.rawUrl, merged.previewOffset, merged.previewCrop, merged.previewGravity),
+      };
+    }));
     showToast(`Updated "${updates.title}"`);
     if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
       try {
@@ -1361,9 +1383,7 @@ export default function App() {
             </button>
             <div className="header-text" onClick={() => window.location.reload()} style={{ cursor: "pointer" }}>
               <h1 className="header-title">
-                <span className="header-title-gradient">Cuddle Buddies</span>
-                <br />
-                <span className="header-title-plain">The Great Library of Cuddles</span>
+                <span className="header-title-gradient">The Great Library of Cuddles</span>
               </h1>
             </div>
             <div className="header-actions">

@@ -35,3 +35,4 @@ export const SparklesIcon    = _ic([P("M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1
 export const FileIcon        = _ic([P("M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"), PL("14 2 14 8 20 8"), P("M10 19v-3l4 2-4 2","fi2"), C(9, 13, 0.4)]);
 export const ChevronDownIcon = _ic([P("m6 9 6 6 6-6")]);
 export const PencilIcon      = _ic([P("M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"), P("m15 5 4 4","p2")]);
+export const FilmIcon        = _ic([R(2,2,20,20,2),L(7,2,7,22),L(17,2,17,22),L(2,12,22,12),L(2,7,7,7),L(2,17,7,17),L(17,17,22,17),L(17,7,22,7)]);

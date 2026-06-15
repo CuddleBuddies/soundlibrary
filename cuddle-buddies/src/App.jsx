@@ -388,7 +388,6 @@ function VFXCard({ item, onDownload }) {
           <DownloadIcon size={15} />
         </button>
       </div>
-      <span className="vfx-love">Made with love</span>
     </div>
   );
 }

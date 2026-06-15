@@ -616,6 +616,91 @@ function UploadPanel({ onAdd, onClose }) {
   );
 }
 
+/* ─── VFXUploadPanel ─── */
+
+function VFXUploadPanel({ onAdd, onClose }) {
+  const [fileObj,   setFileObj]   = useState(null);
+  const [fileName,  setFileName]  = useState(null);
+  const [title,     setTitle]     = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState(null);
+  const fileRef = useRef(null);
+
+  const canSubmit = title.trim().length > 0 && fileObj && !uploading;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setUploading(true);
+    setUploadErr(null);
+    try {
+      const fileBase64 = await fileToBase64(fileObj);
+      const mimeType   = fileObj.type || "video/mp4";
+      await onAdd({ title: title.trim(), fileBase64, fileName, mimeType });
+      setTitle(""); setFileObj(null); setFileName(null);
+      if (fileRef.current) fileRef.current.value = "";
+      onClose?.();
+    } catch (err) {
+      setUploadErr("Помилка: " + (err?.message || String(err)));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="upload-panel">
+      <button type="button" onClick={onClose} aria-label="Close" className="upload-close-btn">
+        <XIcon size={17} />
+      </button>
+      <div className="upload-heading">
+        <div className="upload-icon-wrap" style={{ background: "rgba(122,224,191,.15)", border: "1px solid rgba(122,224,191,.35)", color: "#7AE0BF" }}>
+          <FilmIcon size={18} />
+        </div>
+        <div>
+          <h2 className="upload-title">Drop a new visual</h2>
+          <p className="upload-subtitle">Upload to Cloudinary and add to VFX library.</p>
+        </div>
+      </div>
+      <form onSubmit={submit} className="upload-form">
+        <div>
+          <label className="form-label">Video file</label>
+          <button type="button" onClick={() => fileRef.current?.click()} className="file-pick-btn">
+            <span className="file-pick-icon"><FilmIcon size={18} /></span>
+            <span className="file-pick-text">
+              <span className="file-pick-name">{fileName ?? "Choose a video file"}</span>
+              <span className="file-pick-hint">{fileName ? "Ready to upload" : "MP4, MOV, WEBM"}</span>
+            </span>
+          </button>
+          <input
+            ref={fileRef} type="file" accept="video/*" className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              setFileObj(f); setFileName(f?.name ?? null);
+            }}
+          />
+        </div>
+        <div>
+          <label className="form-label">Title</label>
+          <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Smoke Burst Alpha" />
+        </div>
+        {uploadErr && (
+          <p style={{ color: "#ff6b6b", fontSize: 12, margin: 0, textAlign: "center" }}>{uploadErr}</p>
+        )}
+        <button type="submit" disabled={!canSubmit} className={`submit-btn${uploading ? " uploading" : ""}`}
+          style={uploading
+            ? { color: "#1a1730" }
+            : { background: "#7AE0BF", color: "#1a1730", boxShadow: "0 10px 30px -10px rgba(122,224,191,0.6)" }
+          }>
+          {uploading
+            ? <span style={{ opacity: 0.7 }}>Uploading…</span>
+            : <><FilmIcon size={17} strokeWidth={2.4} /> Add to VFX library</>}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 /* ─── App ─── */
 
 export default function App() {
@@ -927,6 +1012,34 @@ export default function App() {
     showToast(`Downloaded "${snd.name}"`);
   }, [showToast]);
 
+  const addVfx = useCallback(async (data) => {
+    setIsUploading(true);
+    const tempId = `vtmp_${Date.now().toString(36)}`;
+    const entry  = { id: tempId, title: data.title, previewUrl: null, rawUrl: null };
+    setVfxItems((prev) => [entry, ...prev]);
+    try {
+      if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
+        const res  = await fetch(APPS_SCRIPT_URL, {
+          method:  "POST",
+          headers: { "Content-Type": "text/plain" },
+          body:    JSON.stringify({ action: "addVfx", ...data }),
+        });
+        const text = await res.text();
+        try {
+          const result = JSON.parse(text);
+          if (result.vfx) {
+            setVfxItems((prev) =>
+              prev.map((v) => v.id === tempId ? normalizeVfxItem(result.vfx) : v)
+            );
+          }
+        } catch { /* відповідь не JSON */ }
+      }
+      showToast(`Added "${data.title}" to VFX library`);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [showToast]);
+
   const downloadVfx = useCallback(async (item) => {
     if (!item.rawUrl) { showToast("No file yet — coming soon!"); return; }
     try {
@@ -1023,7 +1136,7 @@ export default function App() {
                 title="Add a new sound to the library"
               >
                 <UploadIcon size={16} strokeWidth={2.4} />
-                <span className="upload-trigger-label">{isUploading ? "Uploading…" : "Drop a new sound"}</span>
+                <span className="upload-trigger-label">{isUploading ? "Uploading…" : activeTab === "vfx" ? "Drop a new visual" : "Drop a new sound"}</span>
                 <span className="upload-trigger-short">{isUploading ? "…" : "Add"}</span>
               </button>
             </div>
@@ -1161,8 +1274,10 @@ export default function App() {
         <div className="modal-overlay">
           <div className="modal-backdrop anim-fade" onClick={() => setShowUpload(false)} />
           <div className="modal-positioner">
-            <div className="modal-box anim-pop" role="dialog" aria-modal="true" aria-label="Drop a new sound">
-              <UploadPanel onAdd={addSound} onClose={() => setShowUpload(false)} />
+            <div className="modal-box anim-pop" role="dialog" aria-modal="true">
+              {activeTab === "vfx"
+                ? <VFXUploadPanel onAdd={addVfx} onClose={() => setShowUpload(false)} />
+                : <UploadPanel    onAdd={addSound} onClose={() => setShowUpload(false)} />}
             </div>
           </div>
         </div>

@@ -611,7 +611,6 @@ body.theme-vfx { background: #04111e; }
   background: #04111e;
   overflow: hidden;
 }
-.vfx-video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .vfx-thumb-empty {
   width: 100%; height: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
@@ -639,6 +638,37 @@ body.theme-vfx { background: #04111e; }
 .vfx-card:hover .vfx-dl-btn { opacity: 1; }
 .vfx-dl-btn:hover { color: #fff; }
 .vfx-dl-btn:disabled { opacity: 0.15 !important; cursor: default; }
+
+/* ── VFX thumbnail image ── */
+.vfx-thumb-img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  position: absolute; inset: 0;
+}
+.vfx-video { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.35s ease; }
+
+/* ── VFX frame slider ── */
+.vfx-frame-slider {
+  width: 100%; margin-top: 8px; cursor: pointer;
+  accent-color: #7AE0BF;
+  height: 4px;
+}
+
+/* ── Gravity picker ── */
+.gravity-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 28px);
+  gap: 4px;
+}
+.gravity-btn {
+  width: 28px; height: 28px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06);
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.gravity-btn:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
+.gravity-btn.active { background: #7AE0BF; border-color: #7AE0BF; }
 
 /* ── toast ── */
 .toast-wrap { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 0); z-index: 50; transition: opacity .3s, transform .3s; pointer-events: none; }

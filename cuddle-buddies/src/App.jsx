@@ -151,19 +151,26 @@ const VFX_PLACEHOLDERS = [
   "Lens Flare Gold", "Dust Particles", "Color Bleed",
 ].map((title, i) => ({ id: `vfx-p-${i}`, title, previewUrl: null, rawUrl: null }));
 
-const getPreviewUrl = (url, offset = 0, crop = "fill") => {
+const getPreviewUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
   if (!url) return null;
   const so = offset > 0 ? `so_${offset},` : "";
-  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,du_5,f_webm,vc_vp9,q_auto,w_400/`);
+  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},du_5,f_webm,vc_vp9,q_auto,w_400/`);
+};
+
+const getThumbnailUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
+  if (!url) return null;
+  const so = offset > 0 ? `so_${offset},` : "so_auto,";
+  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},f_jpg,q_auto,w_400/`);
 };
 
 const normalizeVfxItem = (v) => ({
-  id:            String(v.ID || v.id || Math.random()),
-  title:         String(v.Title || v.title || "Untitled"),
-  previewUrl:    v.Preview_URL || v.previewUrl || null,
-  rawUrl:        v.Raw_URL     || v.rawUrl     || null,
-  previewOffset: Number(v.Preview_Offset || v.previewOffset || 0),
-  previewCrop:   String(v.Preview_Crop || v.previewCrop || "fill"),
+  id:             String(v.ID || v.id || Math.random()),
+  title:          String(v.Title || v.title || "Untitled"),
+  previewUrl:     v.Preview_URL     || v.previewUrl     || null,
+  rawUrl:         v.Raw_URL         || v.rawUrl         || null,
+  previewOffset:  Number(v.Preview_Offset  || v.previewOffset  || 0),
+  previewCrop:    String(v.Preview_Crop    || v.previewCrop    || "fill"),
+  previewGravity: String(v.Preview_Gravity || v.previewGravity || "auto"),
 });
 
 const downloadBlob = (filename, text, mime = "application/json") => {
@@ -350,11 +357,19 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
 /* ─── VFXCard ─── */
 
 function VFXCard({ item, onDownload, onEdit }) {
-  const videoRef   = useRef(null);
-  const previewUrl = getPreviewUrl(item.previewUrl, item.previewOffset, item.previewCrop);
+  const videoRef    = useRef(null);
+  const [videoReady, setVideoReady] = useState(false);
+  const thumbnailUrl = getThumbnailUrl(item.previewUrl, item.previewOffset, item.previewCrop, item.previewGravity);
+  const previewUrl   = getPreviewUrl(item.previewUrl, item.previewOffset, item.previewCrop, item.previewGravity);
 
-  const handleEnter = () => { const v = videoRef.current; if (v) v.play().catch(() => {}); };
-  const handleLeave = () => { const v = videoRef.current; if (v) { v.pause(); v.currentTime = 0; } };
+  const handleEnter = () => {
+    const v = videoRef.current;
+    if (v) { v.play().catch(() => {}); }
+  };
+  const handleLeave = () => {
+    const v = videoRef.current;
+    if (v) { v.pause(); v.currentTime = 0; setVideoReady(false); }
+  };
 
   return (
     <div
@@ -371,13 +386,20 @@ function VFXCard({ item, onDownload, onEdit }) {
       }}
     >
       <div className="vfx-thumb" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
-        {previewUrl ? (
-          <video ref={videoRef} src={previewUrl} muted loop playsInline preload="metadata" className="vfx-video" />
-        ) : (
-          <div className="vfx-thumb-empty">
-            <FilmIcon size={28} style={{ opacity: 0.3 }} />
-            <span>Coming soon</span>
-          </div>
+        {thumbnailUrl
+          ? <img src={thumbnailUrl} alt={item.title} className="vfx-thumb-img" />
+          : <div className="vfx-thumb-empty"><FilmIcon size={28} style={{ opacity: 0.3 }} /><span>Coming soon</span></div>
+        }
+        {previewUrl && (
+          <video
+            ref={videoRef}
+            src={previewUrl}
+            muted loop playsInline
+            preload="none"
+            className="vfx-video"
+            style={{ opacity: videoReady ? 1 : 0 }}
+            onCanPlay={() => setVideoReady(true)}
+          />
         )}
       </div>
       <div className="vfx-footer">
@@ -616,21 +638,38 @@ function UploadPanel({ onAdd, onClose }) {
   );
 }
 
+const GRAVITY_GRID = [
+  ["north_west","north","north_east"],
+  ["west",      "center","east"],
+  ["south_west","south","south_east"],
+];
+
 /* ─── VFXEditPanel ─── */
 
 function VFXEditPanel({ item, onSave, onDelete, onClose }) {
-  const [title,         setTitle]         = useState(item.title);
-  const [previewOffset, setPreviewOffset] = useState(item.previewOffset || 0);
-  const [previewCrop,   setPreviewCrop]   = useState(item.previewCrop   || "fill");
-  const [saving,        setSaving]        = useState(false);
-  const [confirmDel,    setConfirmDel]    = useState(false);
+  const [title,          setTitle]          = useState(item.title);
+  const [previewOffset,  setPreviewOffset]  = useState(item.previewOffset  || 0);
+  const [previewCrop,    setPreviewCrop]    = useState(item.previewCrop    || "fill");
+  const [previewGravity, setPreviewGravity] = useState(item.previewGravity || "auto");
+  const [videoDur,       setVideoDur]       = useState(0);
+  const [saving,         setSaving]         = useState(false);
+  const [confirmDel,     setConfirmDel]     = useState(false);
+  const editVidRef = useRef(null);
+
+  const liveThumbnail = getThumbnailUrl(item.previewUrl, previewOffset, previewCrop, previewGravity);
+
+  const handleSeek = (e) => {
+    const t = Number(e.target.value);
+    setPreviewOffset(t);
+    if (editVidRef.current) editVidRef.current.currentTime = t;
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await onSave(item.id, { title: title.trim(), previewOffset: Number(previewOffset), previewCrop });
+      await onSave(item.id, { title: title.trim(), previewOffset: Number(previewOffset), previewCrop, previewGravity });
       onClose();
     } finally { setSaving(false); }
   };
@@ -654,18 +693,54 @@ function VFXEditPanel({ item, onSave, onDelete, onClose }) {
           <label className="form-label">Title</label>
           <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
-        <div className="form-grid2">
-          <div>
-            <label className="form-label">Preview start <span style={{ color: "rgba(255,255,255,.35)", fontSize: 11 }}>(seconds)</span></label>
-            <input className="form-input" type="number" min="0" max="300" step="1"
-              value={previewOffset} onChange={(e) => setPreviewOffset(e.target.value)} placeholder="0" />
+
+        {/* Video frame picker */}
+        <div>
+          <label className="form-label">
+            Thumbnail frame
+            {videoDur > 0 && <span style={{ color: "rgba(255,255,255,.35)", fontSize: 11, marginLeft: 6 }}>
+              {Math.round(previewOffset)}s / {Math.round(videoDur)}s
+            </span>}
+          </label>
+          <div style={{ borderRadius: 10, overflow: "hidden", background: "#04111e", aspectRatio: "16/9", position: "relative" }}>
+            {liveThumbnail && !videoDur
+              ? <img src={liveThumbnail} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="" />
+              : null}
+            {item.rawUrl && (
+              <video ref={editVidRef} src={item.rawUrl} muted preload="metadata"
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: videoDur ? "block" : "none", position: "absolute", inset: 0 }}
+                onLoadedMetadata={() => {
+                  const dur = editVidRef.current?.duration || 0;
+                  setVideoDur(dur);
+                  if (editVidRef.current) editVidRef.current.currentTime = previewOffset;
+                }}
+              />
+            )}
           </div>
+          {videoDur > 0 && (
+            <input type="range" min="0" max={Math.floor(videoDur)} step="0.5"
+              value={previewOffset} onChange={handleSeek} className="vfx-frame-slider" />
+          )}
+        </div>
+
+        {/* Crop position + mode */}
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
           <div>
+            <label className="form-label">Crop position</label>
+            <div className="gravity-picker">
+              {GRAVITY_GRID.flat().map((g) => (
+                <button key={g} type="button"
+                  className={`gravity-btn${previewGravity === g || (g === "center" && previewGravity === "auto") ? " active" : ""}`}
+                  onClick={() => setPreviewGravity(g)} title={g.replace(/_/g, " ")} />
+              ))}
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
             <label className="form-label">Crop mode</label>
             <div className="select-wrap">
               <select className="form-input form-select" value={previewCrop} onChange={(e) => setPreviewCrop(e.target.value)}>
                 <option value="fill" style={{ background: "#1c1b3a" }}>Fill (crop to fit)</option>
-                <option value="fit"  style={{ background: "#1c1b3a" }}>Fit (full video)</option>
+                <option value="fit"  style={{ background: "#1c1b3a" }}>Fit (full frame)</option>
                 <option value="pad"  style={{ background: "#1c1b3a" }}>Pad (dark border)</option>
               </select>
               <ChevronDownIcon size={16} className="select-chevron" />
@@ -697,14 +772,48 @@ function VFXEditPanel({ item, onSave, onDelete, onClose }) {
 /* ─── VFXUploadPanel ─── */
 
 function VFXUploadPanel({ onAdd, onClose }) {
-  const [fileObj,   setFileObj]   = useState(null);
-  const [fileName,  setFileName]  = useState(null);
-  const [title,     setTitle]     = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadErr, setUploadErr] = useState(null);
-  const fileRef = useRef(null);
+  const [fileObj,       setFileObj]       = useState(null);
+  const [fileName,      setFileName]      = useState(null);
+  const [localVideoUrl, setLocalVideoUrl] = useState(null);
+  const [duration,      setDuration]      = useState(0);
+  const [posterOffset,  setPosterOffset]  = useState(0);
+  const [title,         setTitle]         = useState("");
+  const [uploading,     setUploading]     = useState(false);
+  const [uploadErr,     setUploadErr]     = useState(null);
+  const fileRef     = useRef(null);
+  const localVidRef = useRef(null);
 
   const canSubmit = title.trim().length > 0 && fileObj && !uploading;
+
+  const onFileChange = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    setFileObj(f);
+    setFileName(f?.name ?? null);
+    if (localVideoUrl) URL.revokeObjectURL(localVideoUrl);
+    if (f) {
+      setLocalVideoUrl(URL.createObjectURL(f));
+      setPosterOffset(0);
+      setDuration(0);
+    } else {
+      setLocalVideoUrl(null);
+    }
+  };
+
+  const handleMetadata = () => {
+    const v = localVidRef.current;
+    if (!v) return;
+    const dur = v.duration || 0;
+    setDuration(dur);
+    const mid = Math.floor(dur / 2);
+    setPosterOffset(mid);
+    v.currentTime = mid;
+  };
+
+  const handleSlider = (e) => {
+    const t = Number(e.target.value);
+    setPosterOffset(t);
+    if (localVidRef.current) localVidRef.current.currentTime = t;
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -714,8 +823,8 @@ function VFXUploadPanel({ onAdd, onClose }) {
     try {
       const fileBase64 = await fileToBase64(fileObj);
       const mimeType   = fileObj.type || "video/mp4";
-      await onAdd({ title: title.trim(), fileBase64, fileName, mimeType });
-      setTitle(""); setFileObj(null); setFileName(null);
+      await onAdd({ title: title.trim(), fileBase64, fileName, mimeType, previewOffset: posterOffset });
+      setTitle(""); setFileObj(null); setFileName(null); setLocalVideoUrl(null);
       if (fileRef.current) fileRef.current.value = "";
       onClose?.();
     } catch (err) {
@@ -749,14 +858,36 @@ function VFXUploadPanel({ onAdd, onClose }) {
               <span className="file-pick-hint">{fileName ? "Ready to upload" : "MP4, MOV, WEBM"}</span>
             </span>
           </button>
-          <input
-            ref={fileRef} type="file" accept="video/*" className="sr-only"
-            onChange={(e) => {
-              const f = e.target.files?.[0] ?? null;
-              setFileObj(f); setFileName(f?.name ?? null);
-            }}
-          />
+          <input ref={fileRef} type="file" accept="video/*" className="sr-only" onChange={onFileChange} />
         </div>
+
+        {localVideoUrl && (
+          <div>
+            <label className="form-label">
+              Thumbnail frame
+              {duration > 0 && <span style={{ color: "rgba(255,255,255,.35)", fontSize: 11, marginLeft: 6 }}>
+                {Math.round(posterOffset)}s / {Math.round(duration)}s
+              </span>}
+            </label>
+            <div style={{ borderRadius: 10, overflow: "hidden", background: "#04111e", aspectRatio: "16/9" }}>
+              <video
+                ref={localVidRef}
+                src={localVideoUrl}
+                muted playsInline
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                onLoadedMetadata={handleMetadata}
+              />
+            </div>
+            {duration > 0 && (
+              <input
+                type="range" min="0" max={Math.floor(duration)} step="0.5"
+                value={posterOffset} onChange={handleSlider}
+                className="vfx-frame-slider"
+              />
+            )}
+          </div>
+        )}
+
         <div>
           <label className="form-label">Title</label>
           <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)}
@@ -816,15 +947,26 @@ export default function App() {
     return () => document.body.classList.remove("theme-vfx");
   }, [activeTab]);
 
-  /* Load VFX data on first tab switch */
+  /* Load VFX data on first tab switch — with localStorage cache */
   useEffect(() => {
     if (activeTab !== "vfx" || vfxLoadedRef.current) return;
     vfxLoadedRef.current = true;
     if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") return;
+    try {
+      const c = JSON.parse(localStorage.getItem("cb_vfx_v1") || "null");
+      if (c?.data?.length && Date.now() - c.ts < 5 * 60 * 1000) {
+        setVfxItems(c.data.map(normalizeVfxItem));
+      }
+    } catch {}
     setLoadingVfx(true);
     fetch(`${APPS_SCRIPT_URL}?sheet=VFX_Data`)
       .then((r) => r.json())
-      .then((data) => { if (data.vfx?.length) setVfxItems(data.vfx.map(normalizeVfxItem)); })
+      .then((data) => {
+        if (data.vfx?.length) {
+          setVfxItems(data.vfx.map(normalizeVfxItem));
+          localStorage.setItem("cb_vfx_v1", JSON.stringify({ data: data.vfx, ts: Date.now() }));
+        }
+      })
       .catch(() => {})
       .finally(() => setLoadingVfx(false));
   }, [activeTab]);
@@ -850,18 +992,26 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showTypeDrop]);
 
-  /* Load sounds from Google Sheets on mount */
+  /* Load sounds from Google Sheets — with localStorage cache */
   useEffect(() => {
-    if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
-      setLoadingData(false);
-      return;
-    }
+    if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") { setLoadingData(false); return; }
+    try {
+      const c = JSON.parse(localStorage.getItem("cb_sounds_v1") || "null");
+      if (c?.data?.length && Date.now() - c.ts < 5 * 60 * 1000) {
+        const cached = c.data.map(normalizeRemoteSound).filter(Boolean);
+        if (cached.length) { setSounds(cached); setLoadingData(false); }
+      }
+    } catch {}
     fetch(APPS_SCRIPT_URL)
       .then((r) => r.json())
       .then((data) => {
-        if (data.sounds && data.sounds.length > 0) {
+        if (data.sounds?.length) {
           const remote = data.sounds.map(normalizeRemoteSound).filter(Boolean);
-          if (remote.length) { setSounds(remote); return; }
+          if (remote.length) {
+            setSounds(remote);
+            localStorage.setItem("cb_sounds_v1", JSON.stringify({ data: data.sounds, ts: Date.now() }));
+            return;
+          }
         }
         setSounds(SOUNDS);
       })
@@ -1120,7 +1270,7 @@ export default function App() {
   const addVfx = useCallback(async (data) => {
     setIsUploading(true);
     const tempId = `vtmp_${Date.now().toString(36)}`;
-    const entry  = { id: tempId, title: data.title, previewUrl: null, rawUrl: null };
+    const entry  = { id: tempId, title: data.title, previewUrl: null, rawUrl: null, previewOffset: data.previewOffset || 0, previewCrop: "fill", previewGravity: "auto" };
     setVfxItems((prev) => [entry, ...prev]);
     try {
       if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {

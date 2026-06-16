@@ -154,7 +154,7 @@ const VFX_PLACEHOLDERS = [
 const getPreviewUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
   if (!url) return null;
   const so = offset > 0 ? `so_${offset},` : "";
-  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},du_4,f_webp,q_auto,w_400/`);
+  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},w_400,q_auto,f_mp4/`);
 };
 
 const getThumbnailUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
@@ -357,15 +357,24 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
 /* ─── VFXCard ─── */
 
 function VFXCard({ item, onDownload, onEdit }) {
-  const animRef = useRef(null);
+  const videoRef = useRef(null);
   const thumbnailUrl = (item.previewUrl && item.previewUrl !== item.rawUrl)
     ? item.previewUrl
     : getThumbnailUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
-  const animUrl = getPreviewUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
+  const previewUrl = getPreviewUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
 
   const handleEnter = () => {
-    const img = animRef.current;
-    if (img && !img.getAttribute("src") && animUrl) img.src = animUrl;
+    const v = videoRef.current;
+    if (!v) return;
+    if (!v.getAttribute("src") && previewUrl) v.src = previewUrl;
+    v.play().then(() => { if (videoRef.current) videoRef.current.style.opacity = "1"; }).catch(() => {});
+  };
+  const handleLeave = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.style.opacity = "0";
+    v.pause();
+    v.currentTime = 0;
   };
 
   return (
@@ -382,12 +391,12 @@ function VFXCard({ item, onDownload, onEdit }) {
         else onDownload(item);
       }}
     >
-      <div className="vfx-thumb" onMouseEnter={handleEnter}>
+      <div className="vfx-thumb" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
         {thumbnailUrl
           ? <img src={thumbnailUrl} alt={item.title} className="vfx-thumb-img" />
           : <div className="vfx-thumb-empty"><FilmIcon size={28} style={{ opacity: 0.3 }} /><span>Coming soon</span></div>
         }
-        {animUrl && <img ref={animRef} alt="" className="vfx-animated" />}
+        {previewUrl && <video ref={videoRef} muted loop playsInline className="vfx-video" />}
       </div>
       <div className="vfx-footer">
         <button className="vfx-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Edit">

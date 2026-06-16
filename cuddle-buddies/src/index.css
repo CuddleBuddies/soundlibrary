@@ -135,6 +135,7 @@ select option { color: #fff; }
   align-self: flex-end;
   margin-bottom: -14px;
   margin-left: -60px;
+  transform: translateY(-25px);
 }
 @media (min-width: 640px) { .header-logo { height: 171px; } }
 
@@ -570,7 +571,7 @@ body.theme-vfx { background: #04111e; }
 .theme-vfx .sound-count-label  { color: rgba(255,255,255,.45); }
 
 /* ── tab switcher (now inside header) ── */
-.header-center .tab-switcher { margin-top: 30px; }
+.header-center .tab-switcher { margin-top: 30px; transform: translateY(-25px); }
 .tab-switcher {
   display: flex;
   background: rgba(255,255,255,.08);

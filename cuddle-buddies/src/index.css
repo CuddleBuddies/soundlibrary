@@ -652,6 +652,7 @@ body.theme-vfx { background: #04111e; }
   object-fit: cover; display: block;
   opacity: 0; transition: opacity 0.35s ease;
 }
+.vfx-thumb:hover .vfx-video { opacity: 1; }
 
 /* ── VFX frame slider ── */
 .vfx-frame-slider {

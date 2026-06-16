@@ -361,20 +361,14 @@ function VFXCard({ item, onDownload, onEdit }) {
   const thumbnailUrl = (item.previewUrl && item.previewUrl !== item.rawUrl)
     ? item.previewUrl
     : getThumbnailUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
-  const previewUrl = getPreviewUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
 
   const handleEnter = () => {
     const v = videoRef.current;
-    if (!v) return;
-    if (!v.getAttribute("src") && previewUrl) v.src = previewUrl;
-    v.play().then(() => { if (videoRef.current) videoRef.current.style.opacity = "1"; }).catch(() => {});
+    if (v) v.play().catch(() => {});
   };
   const handleLeave = () => {
     const v = videoRef.current;
-    if (!v) return;
-    v.style.opacity = "0";
-    v.pause();
-    v.currentTime = 0;
+    if (v) { v.pause(); v.currentTime = 0; }
   };
 
   return (
@@ -396,7 +390,15 @@ function VFXCard({ item, onDownload, onEdit }) {
           ? <img src={thumbnailUrl} alt={item.title} className="vfx-thumb-img" />
           : <div className="vfx-thumb-empty"><FilmIcon size={28} style={{ opacity: 0.3 }} /><span>Coming soon</span></div>
         }
-        {previewUrl && <video ref={videoRef} muted loop playsInline className="vfx-video" />}
+        {item.rawUrl && (
+          <video
+            ref={videoRef}
+            src={item.rawUrl}
+            muted loop playsInline
+            preload="none"
+            className="vfx-video"
+          />
+        )}
       </div>
       <div className="vfx-footer">
         <button className="vfx-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Edit">

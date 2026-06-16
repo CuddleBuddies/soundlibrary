@@ -340,6 +340,7 @@ function FontCard({ item, onDownload, onEdit }) {
   const defaultStyles = DEMO_LETTERS.map(() => ({ fw:700, fs:24 }));
   const [styles, setStyles] = useState(defaultStyles);
   const timerRef = useRef(null);
+  const videoRef = useRef(null);
 
   const isVideoPreview = item.previewUrl && /\.webm(\?|$)/i.test(item.previewUrl);
   const hasPreview     = !!item.previewUrl;
@@ -354,8 +355,23 @@ function FontCard({ item, onDownload, onEdit }) {
     })));
   };
 
-  const onEnter = () => { if (hasPreview) return; randomize(); timerRef.current = setInterval(randomize, 500); };
-  const onLeave = () => { clearInterval(timerRef.current); setStyles(defaultStyles); };
+  const onEnter = () => {
+    if (isVideoPreview && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    } else if (!hasPreview) {
+      randomize();
+      timerRef.current = setInterval(randomize, 500);
+    }
+  };
+  const onLeave = () => {
+    if (isVideoPreview && videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+    clearInterval(timerRef.current);
+    setStyles(defaultStyles);
+  };
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
@@ -384,7 +400,7 @@ function FontCard({ item, onDownload, onEdit }) {
       <div className="txt-thumb">
         {hasPreview ? (
           isVideoPreview
-            ? <video src={item.previewUrl} autoPlay muted loop playsInline className="txt-thumb-img" />
+            ? <video ref={videoRef} src={item.previewUrl} muted loop playsInline className="txt-thumb-img" />
             : <img src={item.previewUrl} alt={item.title} className="txt-thumb-img" />
         ) : (
           <div className="txt-thumb-placeholder">
@@ -1541,7 +1557,7 @@ export default function App() {
                 <div className="search-wrap">
                   <SearchIcon size={20} className="search-icon" />
                   <input value={query} onChange={e=>setQuery(e.target.value)}
-                    placeholder='Search "cartoon jump sound", a tag, or a vibe…' className="search-input" />
+                    placeholder='Search "cartoon jump sound", a tag, or a vibe…' className="search-input search-input-sm" />
                   {query && <button onClick={()=>setQuery("")} className="search-clear" aria-label="Clear search"><XIcon size={18}/></button>}
                 </div>
                 <div className="type-dropdown" ref={typeDropRef}>

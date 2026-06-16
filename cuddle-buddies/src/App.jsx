@@ -1425,7 +1425,7 @@ export default function App() {
   const filteredTxt = useMemo(() => {
     const q = txtQuery.trim().toLowerCase();
     if (!q) return txtItems;
-    return txtItems.filter(f => f.title.toLowerCase().includes(q) || f.fontName.toLowerCase().includes(q));
+    return txtItems.filter(f => f.title.toLowerCase().includes(q));
   }, [txtItems, txtQuery]);
 
   const catCounts = useMemo(() => {

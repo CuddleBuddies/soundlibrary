@@ -647,7 +647,12 @@ body.theme-vfx { background: #04111e; }
   width: 100%; height: 100%; object-fit: cover; display: block;
   position: absolute; inset: 0;
 }
-.vfx-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.35s ease; }
+.vfx-animated {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  opacity: 0; transition: opacity 0.35s ease;
+}
+.vfx-thumb:hover .vfx-animated { opacity: 1; }
 
 /* ── VFX frame slider ── */
 .vfx-frame-slider {

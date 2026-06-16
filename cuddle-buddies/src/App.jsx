@@ -366,23 +366,41 @@ function VFXCard({ item, onDownload, onEdit }) {
 
   const handleEnter = () => {
     const v = videoRef.current;
-    if (!v) return;
-    if (!v.getAttribute("src") && videoSrc) {
+    if (!v || !videoSrc) return;
+    if (!v.src) {
       v.addEventListener("canplay", () => {
-        if (videoRef.current) videoRef.current.style.opacity = "1";
+        if (!videoRef.current) return;
+        videoRef.current.classList.add("vfx-video-ready");
+        videoRef.current.play().catch(() => {});
       }, { once: true });
       v.src = videoSrc;
-    } else if (v.getAttribute("src")) {
-      v.style.opacity = "1";
+    } else if (v.readyState >= 3) {
+      v.classList.add("vfx-video-ready");
+      v.play().catch(() => {});
+    } else {
+      v.play().catch(() => {});
     }
-    v.play().catch(() => {});
   };
   const handleLeave = () => {
     const v = videoRef.current;
     if (!v) return;
-    v.style.opacity = "0";
+    v.classList.remove("vfx-video-ready");
     v.pause();
     v.currentTime = 0;
+  };
+  const handleVideoError = () => {
+    const v = videoRef.current;
+    if (!v || !videoSrc) return;
+    v._r = (v._r || 0) + 1;
+    if (v._r > 10) return;
+    setTimeout(() => {
+      if (!videoRef.current) return;
+      videoRef.current.addEventListener("canplay", () => {
+        if (videoRef.current) videoRef.current.classList.add("vfx-video-ready");
+      }, { once: true });
+      videoRef.current.load();
+      videoRef.current.play().catch(() => {});
+    }, 3000);
   };
 
   return (
@@ -404,7 +422,7 @@ function VFXCard({ item, onDownload, onEdit }) {
           ? <img src={thumbnailUrl} alt={item.title} className="vfx-thumb-img" />
           : <div className="vfx-thumb-empty"><FilmIcon size={28} style={{ opacity: 0.3 }} /><span>Coming soon</span></div>
         }
-        {videoSrc && <video ref={videoRef} muted loop playsInline className="vfx-video" />}
+        {videoSrc && <video ref={videoRef} muted loop playsInline className="vfx-video" onError={handleVideoError} />}
       </div>
       <div className="vfx-footer">
         <button className="vfx-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Edit">

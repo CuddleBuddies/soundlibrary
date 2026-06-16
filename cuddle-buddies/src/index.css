@@ -102,9 +102,12 @@ select option { color: #fff; }
   gap: 20px;
   overflow: visible;
   width: 100%;
+  height: 95px;          /* frame shrunk 40px; inner elements overflow */
+  margin-top: 20px;      /* push top edge down 20px (bottom edge moves up 20px) */
+  box-sizing: border-box;
   transition: background 0.7s ease, border-color 0.7s ease;
 }
-@media (min-width: 640px) { .header-card { padding: 0 32px 18px 0; gap: 24px; } }
+@media (min-width: 640px) { .header-card { padding: 0 32px 18px 0; gap: 24px; height: 135px; } }
 
 .header-center {
   display: flex;

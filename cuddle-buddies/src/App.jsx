@@ -127,13 +127,13 @@ const normalizeVfxItem = (v) => ({
 
 const TXT_PLACEHOLDERS = [
   "Bold Italic Pack","Minimal Sans","Retro Script","Modern Serif","Display Grotesk","Handwritten Clean",
-].map((title, i) => ({ id:`txt-p-${i}`, title, fontName:"System", rawUrl:null }));
+].map((title, i) => ({ id:`txt-p-${i}`, title, previewUrl:null, rawUrl:null }));
 
 const normalizeFontItem = (f) => ({
-  id:       String(f.ID || f.id || Math.random()),
-  title:    String(f.Title || f.title || "Untitled"),
-  fontName: String(f.Font_Name || f.fontName || ""),
-  rawUrl:   f.Raw_URL || f.rawUrl || null,
+  id:         String(f.ID || f.id || Math.random()),
+  title:      String(f.Title || f.title || "Untitled"),
+  previewUrl: f.Preview_URL || f.previewUrl || null,
+  rawUrl:     f.Raw_URL || f.rawUrl || null,
 });
 
 /* ─── misc helpers ─── */
@@ -337,9 +337,12 @@ const DEMO_WORD    = "Cuddle";
 const DEMO_LETTERS = DEMO_WORD.split("");
 
 function FontCard({ item, onDownload, onEdit }) {
-  const defaultStyles = DEMO_LETTERS.map(() => ({ fw:700, fs:26 }));
-  const [styles, setStyles]   = useState(defaultStyles);
+  const defaultStyles = DEMO_LETTERS.map(() => ({ fw:700, fs:24 }));
+  const [styles, setStyles] = useState(defaultStyles);
   const timerRef = useRef(null);
+
+  const isVideoPreview = item.previewUrl && /\.webm(\?|$)/i.test(item.previewUrl);
+  const hasPreview     = !!item.previewUrl;
 
   const randomize = () => {
     const perLetter = Math.random() > 0.5;
@@ -351,15 +354,15 @@ function FontCard({ item, onDownload, onEdit }) {
     })));
   };
 
-  const onEnter = () => { randomize(); timerRef.current = setInterval(randomize, 500); };
+  const onEnter = () => { if (hasPreview) return; randomize(); timerRef.current = setInterval(randomize, 500); };
   const onLeave = () => { clearInterval(timerRef.current); setStyles(defaultStyles); };
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
   const handleAction = () => {
     if (item.rawUrl) {
-      const ext = item.rawUrl.split(".").pop().split("?")[0] || "ttf";
-      const safeName = (item.fontName || item.title).replace(/[^\w\s-]/g, "_");
+      const ext = item.rawUrl.split(".").pop().split("?")[0] || "prtextstyle";
+      const safeName = item.title.replace(/[^\w\s-]/g, "_");
       if (importToProject(item.title, item.rawUrl, `${safeName}.${ext}`)) return;
     }
     onDownload(item);
@@ -371,25 +374,33 @@ function FontCard({ item, onDownload, onEdit }) {
       draggable={isCEP && !!item.rawUrl}
       onDragStart={isCEP && item.rawUrl ? (e) => {
         e.dataTransfer.setData("application/json", JSON.stringify({ name:item.title, fileUrl:item.rawUrl }));
-        sendCEP("CB_DRAG_START_PROJECT", { name:item.title, fileUrl:item.rawUrl, fileName:item.fontName });
+        sendCEP("CB_DRAG_START_PROJECT", { name:item.title, fileUrl:item.rawUrl });
       } : undefined}
       onDragEnd={isCEP ? () => sendCEP("CB_DRAG_END") : undefined}
       onDoubleClick={(e) => { if (e.target.closest?.("button")) return; handleAction(); }}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
-      <div className="txt-preview">
-        <div className="txt-demo-word" aria-hidden="true">
-          {DEMO_LETTERS.map((l, i) => (
-            <span key={i} style={{
-              fontWeight: styles[i].fw,
-              fontSize:   `${styles[i].fs}px`,
-              transition: "font-weight 0.12s ease, font-size 0.18s ease",
-              display:    "inline-block",
-              lineHeight: 1,
-            }}>{l}</span>
-          ))}
-        </div>
+      <div className="txt-thumb">
+        {hasPreview ? (
+          isVideoPreview
+            ? <video src={item.previewUrl} autoPlay muted loop playsInline className="txt-thumb-img" />
+            : <img src={item.previewUrl} alt={item.title} className="txt-thumb-img" />
+        ) : (
+          <div className="txt-thumb-placeholder">
+            <div className="txt-demo-word" aria-hidden="true">
+              {DEMO_LETTERS.map((l, i) => (
+                <span key={i} style={{
+                  fontWeight: styles[i].fw,
+                  fontSize:   `${styles[i].fs}px`,
+                  transition: "font-weight 0.12s ease, font-size 0.18s ease",
+                  display:    "inline-block",
+                  lineHeight: 1,
+                }}>{l}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <div className="txt-footer">
         <button className="txt-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Edit">
@@ -668,17 +679,41 @@ function VFXEditPanel({ item, onSave, onDelete, onClose }) {
 /* ─── TXTEditPanel ─── */
 
 function TXTEditPanel({ item, onSave, onDelete, onClose }) {
-  const [title,      setTitle]      = useState(item.title);
-  const [fontName,   setFontName]   = useState(item.fontName || "");
-  const [saving,     setSaving]     = useState(false);
-  const [confirmDel, setConfirmDel] = useState(false);
+  const [title,          setTitle]          = useState(item.title);
+  const [previewFileObj, setPreviewFileObj] = useState(null);
+  const [previewName,    setPreviewName]    = useState(null);
+  const [previewLocal,   setPreviewLocal]   = useState(null);
+  const [saving,         setSaving]         = useState(false);
+  const [confirmDel,     setConfirmDel]     = useState(false);
+  const previewFileRef = useRef(null);
+  const cropRef        = useRef(null);
+
+  const onPreviewChange = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    setPreviewFileObj(f); setPreviewName(f?.name ?? null);
+    if (previewLocal) URL.revokeObjectURL(previewLocal);
+    setPreviewLocal(f ? URL.createObjectURL(f) : null);
+  };
+
+  const isNewVideo     = previewLocal && /\.webm$/i.test(previewName || "");
+  const isNewGif       = previewLocal && /\.gif$/i.test(previewName || "");
+  const canCrop        = !!previewLocal && !isNewVideo && !isNewGif;
+  const displayPreview = previewLocal || item.previewUrl;
+  const isVideoPreview = displayPreview && /\.webm(\?|$)/i.test(displayPreview);
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
-    try { await onSave(item.id, { title:title.trim(), fontName:fontName.trim() }); onClose(); }
-    finally { setSaving(false); }
+    try {
+      let previewBase64 = null, previewMimeType = null;
+      if (previewFileObj) {
+        if (canCrop) { const cropped = await cropRef.current?.getJpeg(); previewBase64 = cropped ?? await fileToBase64(previewFileObj); previewMimeType = "image/jpeg"; }
+        else { previewBase64 = await fileToBase64(previewFileObj); previewMimeType = previewFileObj.type || "image/jpeg"; }
+      }
+      await onSave(item.id, { title:title.trim(), previewBase64, previewFileName:previewName, previewMimeType });
+      onClose();
+    } finally { setSaving(false); }
   };
 
   return (
@@ -688,7 +723,7 @@ function TXTEditPanel({ item, onSave, onDelete, onClose }) {
         <div className="upload-icon-wrap" style={{ background:"rgba(132,206,224,.15)", border:"1px solid rgba(132,206,224,.35)", color:"#84CEE0" }}>
           <PencilIcon size={18} />
         </div>
-        <div><h2 className="upload-title">Edit font preset</h2><p className="upload-subtitle">{item.title}</p></div>
+        <div><h2 className="upload-title">Edit preset</h2><p className="upload-subtitle">{item.title}</p></div>
       </div>
       <form onSubmit={handleSave} className="upload-form">
         <div>
@@ -696,8 +731,28 @@ function TXTEditPanel({ item, onSave, onDelete, onClose }) {
           <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div>
-          <label className="form-label">Font family name</label>
-          <input className="form-input" value={fontName} onChange={(e) => setFontName(e.target.value)} placeholder="e.g. Neue Haas Grotesk" />
+          <label className="form-label">Preview <span style={{ color:"rgba(255,255,255,.3)", fontSize:11 }}>(replaces current)</span></label>
+          {displayPreview && (
+            <div style={{ marginBottom:8 }}>
+              {canCrop
+                ? <CropPreview src={previewLocal} isVideo={false} cropRef={cropRef} />
+                : <div style={{ borderRadius:10, overflow:"hidden", aspectRatio:"16/9", background:"#04111e" }}>
+                    {isVideoPreview
+                      ? <video src={displayPreview} autoPlay muted loop playsInline style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                      : <img src={displayPreview} alt="preview" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                    }
+                  </div>
+              }
+            </div>
+          )}
+          <button type="button" onClick={() => previewFileRef.current?.click()} className="file-pick-btn">
+            <span className="file-pick-icon" style={{ color:"#84CEE0" }}><FileIcon size={18} /></span>
+            <span className="file-pick-text">
+              <span className="file-pick-name">{previewName ?? "Choose a preview file"}</span>
+              <span className="file-pick-hint">JPEG, PNG, GIF, WebM</span>
+            </span>
+          </button>
+          <input ref={previewFileRef} type="file" accept="image/jpeg,image/png,image/gif,video/webm" className="sr-only" onChange={onPreviewChange} />
         </div>
         <button type="submit" disabled={saving} className="submit-btn"
           style={{ background:"#84CEE0", color:"#1a1730", boxShadow:"0 10px 30px -10px rgba(132,206,224,0.5)" }}>
@@ -707,7 +762,7 @@ function TXTEditPanel({ item, onSave, onDelete, onClose }) {
           {!confirmDel ? (
             <button type="button" onClick={() => setConfirmDel(true)}
               style={{ width:"100%", padding:"9px", borderRadius:10, border:"1px solid rgba(255,80,80,.3)", background:"rgba(255,80,80,.08)", color:"#ff6b6b", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-              Delete font
+              Delete preset
             </button>
           ) : (
             <div style={{ display:"flex", gap:8 }}>
@@ -893,14 +948,29 @@ function VFXUploadPanel({ onAdd, onClose }) {
 /* ─── TXTUploadPanel ─── */
 
 function TXTUploadPanel({ onAdd, onClose }) {
-  const [fileObj,   setFileObj]   = useState(null);
-  const [fileName,  setFileName]  = useState(null);
-  const [title,     setTitle]     = useState("");
-  const [fontName,  setFontName]  = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadErr, setUploadErr] = useState(null);
-  const fileRef = useRef(null);
+  const [fileObj,        setFileObj]        = useState(null);
+  const [fileName,       setFileName]       = useState(null);
+  const [previewFileObj, setPreviewFileObj] = useState(null);
+  const [previewName,    setPreviewName]    = useState(null);
+  const [previewLocal,   setPreviewLocal]   = useState(null);
+  const [title,          setTitle]          = useState("");
+  const [uploading,      setUploading]      = useState(false);
+  const [uploadErr,      setUploadErr]      = useState(null);
+  const fileRef        = useRef(null);
+  const previewFileRef = useRef(null);
+  const cropRef        = useRef(null);
+
   const canSubmit = title.trim().length > 0 && fileObj && !uploading;
+  const isVideoPreview = previewLocal && /\.webm$/i.test(previewName || "");
+  const isGifPreview   = previewLocal && /\.gif$/i.test(previewName || "");
+  const canCrop        = !!previewLocal && !isVideoPreview && !isGifPreview;
+
+  const onPreviewChange = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    setPreviewFileObj(f); setPreviewName(f?.name ?? null);
+    if (previewLocal) URL.revokeObjectURL(previewLocal);
+    setPreviewLocal(f ? URL.createObjectURL(f) : null);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -908,10 +978,17 @@ function TXTUploadPanel({ onAdd, onClose }) {
     setUploading(true); setUploadErr(null);
     try {
       const fileBase64 = await fileToBase64(fileObj);
-      const mimeType   = fileObj.type || "font/ttf";
-      await onAdd({ title:title.trim(), fontName:fontName.trim()||title.trim(), fileBase64, fileName, mimeType });
-      setTitle(""); setFontName(""); setFileObj(null); setFileName(null);
+      const mimeType   = fileObj.type || "application/octet-stream";
+      let previewBase64 = null, previewMimeType = null;
+      if (previewFileObj) {
+        if (canCrop) { const cropped = await cropRef.current?.getJpeg(); previewBase64 = cropped ?? await fileToBase64(previewFileObj); previewMimeType = "image/jpeg"; }
+        else { previewBase64 = await fileToBase64(previewFileObj); previewMimeType = previewFileObj.type || "image/jpeg"; }
+      }
+      await onAdd({ title:title.trim(), fileBase64, fileName, mimeType, previewBase64, previewFileName:previewName, previewMimeType });
+      setTitle(""); setFileObj(null); setFileName(null);
+      setPreviewFileObj(null); setPreviewName(null); setPreviewLocal(null);
       if (fileRef.current) fileRef.current.value = "";
+      if (previewFileRef.current) previewFileRef.current.value = "";
       onClose?.();
     } catch (err) { setUploadErr("Error: "+(err?.message||String(err))); }
     finally { setUploading(false); }
@@ -924,28 +1001,36 @@ function TXTUploadPanel({ onAdd, onClose }) {
         <div className="upload-icon-wrap" style={{ background:"rgba(132,206,224,.15)", border:"1px solid rgba(132,206,224,.35)", color:"#84CEE0" }}>
           <FileIcon size={18} />
         </div>
-        <div><h2 className="upload-title">Drop a new font</h2><p className="upload-subtitle">Upload a font preset to the TXT library.</p></div>
+        <div><h2 className="upload-title">Drop a new preset</h2><p className="upload-subtitle">Upload a Premiere text style to the TXT library.</p></div>
       </div>
       <form onSubmit={submit} className="upload-form">
         <div>
-          <label className="form-label">Font / preset file</label>
+          <label className="form-label">Premiere text style file</label>
           <button type="button" onClick={() => fileRef.current?.click()} className="file-pick-btn">
             <span className="file-pick-icon" style={{ color:"#84CEE0" }}><FileIcon size={18} /></span>
             <span className="file-pick-text">
-              <span className="file-pick-name">{fileName ?? "Choose a font file"}</span>
-              <span className="file-pick-hint">{fileName ? "Ready to upload" : "TTF, OTF, WOFF, MOGRT"}</span>
+              <span className="file-pick-name">{fileName ?? "Choose a preset file"}</span>
+              <span className="file-pick-hint">{fileName ? "Ready to upload" : ".prtextstyle"}</span>
             </span>
           </button>
-          <input ref={fileRef} type="file" accept=".ttf,.otf,.woff,.woff2,.mogrt" className="sr-only"
+          <input ref={fileRef} type="file" accept=".prtextstyle" className="sr-only"
             onChange={(e) => { const f=e.target.files?.[0]??null; setFileObj(f); setFileName(f?.name??null); }} />
+        </div>
+        <div>
+          <label className="form-label">Preview <span style={{ color:"rgba(255,255,255,.3)", fontSize:11 }}>(optional — JPEG, PNG, GIF, WebM)</span></label>
+          <button type="button" onClick={() => previewFileRef.current?.click()} className="file-pick-btn">
+            <span className="file-pick-icon" style={{ color:"#84CEE0" }}><FileIcon size={18} /></span>
+            <span className="file-pick-text">
+              <span className="file-pick-name">{previewName ?? "Choose a preview file"}</span>
+              <span className="file-pick-hint">{previewName ? "Ready to upload" : "Still or animated image"}</span>
+            </span>
+          </button>
+          <input ref={previewFileRef} type="file" accept="image/jpeg,image/png,image/gif,video/webm" className="sr-only" onChange={onPreviewChange} />
+          {previewLocal && <div style={{ marginTop:8 }}><CropPreview src={previewLocal} isVideo={isVideoPreview} cropRef={canCrop?cropRef:null} /></div>}
         </div>
         <div>
           <label className="form-label">Preset title</label>
           <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Bold Italic Pack" />
-        </div>
-        <div>
-          <label className="form-label">Font family name <span style={{ color:"rgba(255,255,255,.3)", fontSize:11 }}>(optional)</span></label>
-          <input className="form-input" value={fontName} onChange={(e) => setFontName(e.target.value)} placeholder="e.g. Neue Haas Grotesk" />
         </div>
         {uploadErr && <p style={{ color:"#ff6b6b", fontSize:12, margin:0, textAlign:"center" }}>{uploadErr}</p>}
         <button type="submit" disabled={!canSubmit} className={`submit-btn${uploading?" uploading":""}`}
@@ -1267,10 +1352,17 @@ export default function App() {
   }, [showToast]);
 
   const editTxt = useCallback(async (id, updates) => {
-    setTxtItems(prev => prev.map(f => f.id!==id ? f : {...f,...updates}));
+    setTxtItems(prev => prev.map(f => f.id!==id ? f : {...f, title:updates.title}));
     showToast(`Updated "${updates.title}"`);
     if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
-      try { await fetch(APPS_SCRIPT_URL, { method:"POST", headers:{"Content-Type":"text/plain"}, body:JSON.stringify({ action:"updateFont", id, ...updates }) }); } catch {}
+      try {
+        const res  = await fetch(APPS_SCRIPT_URL, { method:"POST", headers:{"Content-Type":"text/plain"}, body:JSON.stringify({ action:"updateFont", id, ...updates }) });
+        const text = await res.text();
+        try {
+          const result = JSON.parse(text);
+          if (result.previewUrl) setTxtItems(prev => prev.map(f => f.id===id ? {...f, previewUrl:result.previewUrl} : f));
+        } catch {}
+      } catch {}
     }
   }, [showToast]);
 
@@ -1330,7 +1422,7 @@ export default function App() {
   const headerCount = activeTab==="sfx" ? sounds.length : activeTab==="vfx" ? vfxItems.length : txtItems.length;
   const headerLoading = activeTab==="sfx" ? loadingData : activeTab==="vfx" ? loadingVfx : loadingTxt;
   const headerCountLabel = activeTab==="sfx" ? "sounds in Cuddle" : activeTab==="vfx" ? "clips in Cuddle" : "fonts in Cuddle";
-  const uploadBtnLabel = isUploading ? "Uploading…" : activeTab==="txt" ? "Drop a new font" : activeTab==="vfx" ? "Drop a new visual" : "Drop a new sound";
+  const uploadBtnLabel = isUploading ? "Uploading…" : activeTab==="txt" ? "Drop a new preset" : activeTab==="vfx" ? "Drop a new visual" : "Drop a new sound";
 
   return (
     <PasswordGate>
@@ -1357,9 +1449,9 @@ export default function App() {
                 </h1>
               </div>
               <div className="tab-switcher">
-                <button className={`tab-btn${activeTab==="sfx"?" tab-active":""}`} onClick={() => setActiveTab("sfx")}>SFX Library</button>
-                <button className={`tab-btn${activeTab==="vfx"?" tab-active":""}`} onClick={() => setActiveTab("vfx")}>VFX Library</button>
-                <button className={`tab-btn${activeTab==="txt"?" tab-active":""}`} onClick={() => setActiveTab("txt")}>TXT Library</button>
+                <button className={`tab-btn${activeTab==="sfx"?" tab-active":""}`} onClick={() => setActiveTab("sfx")}>SFX</button>
+                <button className={`tab-btn${activeTab==="vfx"?" tab-active":""}`} onClick={() => setActiveTab("vfx")}>VFX</button>
+                <button className={`tab-btn${activeTab==="txt"?" tab-active":""}`} onClick={() => setActiveTab("txt")}>TXT</button>
               </div>
             </div>
 

@@ -151,27 +151,11 @@ const VFX_PLACEHOLDERS = [
   "Lens Flare Gold", "Dust Particles", "Color Bleed",
 ].map((title, i) => ({ id: `vfx-p-${i}`, title, previewUrl: null, rawUrl: null }));
 
-const getPreviewUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
-  if (!url) return null;
-  const so = offset > 0 ? `so_${offset},` : "";
-  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},w_400,q_auto,f_webm,vc_vp9/`);
-};
-
-const getThumbnailUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
-  if (!url) return null;
-  const so = offset > 0 ? `so_${offset},` : "so_auto,";
-  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},f_jpg,q_auto,w_400/`);
-};
-
 const normalizeVfxItem = (v) => ({
-  id:             String(v.ID || v.id || Math.random()),
-  title:          String(v.Title || v.title || "Untitled"),
-  previewUrl:     v.Preview_URL     || v.previewUrl     || null,
-  rawUrl:         v.Raw_URL         || v.rawUrl         || null,
-  webmUrl:        v.Webm_URL        || v.webmUrl        || null,
-  previewOffset:  Number(v.Preview_Offset  || v.previewOffset  || 0),
-  previewCrop:    String(v.Preview_Crop    || v.previewCrop    || "fill"),
-  previewGravity: String(v.Preview_Gravity || v.previewGravity || "auto"),
+  id:         String(v.ID || v.id || Math.random()),
+  title:      String(v.Title || v.title || "Untitled"),
+  previewUrl: v.Preview_URL || v.previewUrl || null,
+  rawUrl:     v.Raw_URL     || v.rawUrl     || null,
 });
 
 const downloadBlob = (filename, text, mime = "application/json") => {
@@ -358,51 +342,7 @@ function SoundCard({ sound, isPlaying, progress, onPlay, onDownload, onEdit, onS
 /* ─── VFXCard ─── */
 
 function VFXCard({ item, onDownload, onEdit }) {
-  const videoRef = useRef(null);
-  const thumbnailUrl = (item.previewUrl && item.previewUrl !== item.rawUrl)
-    ? item.previewUrl
-    : getThumbnailUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
-  const videoSrc = item.webmUrl || getPreviewUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
-
-  const handleEnter = () => {
-    const v = videoRef.current;
-    if (!v || !videoSrc) return;
-    if (!v.src) {
-      v.addEventListener("canplay", () => {
-        if (!videoRef.current) return;
-        videoRef.current.classList.add("vfx-video-ready");
-        videoRef.current.play().catch(() => {});
-      }, { once: true });
-      v.src = videoSrc;
-    } else if (v.readyState >= 3) {
-      v.classList.add("vfx-video-ready");
-      v.play().catch(() => {});
-    } else {
-      v.play().catch(() => {});
-    }
-  };
-  const handleLeave = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.classList.remove("vfx-video-ready");
-    v.pause();
-    v.currentTime = 0;
-  };
-  const handleVideoError = () => {
-    const v = videoRef.current;
-    if (!v || !videoSrc) return;
-    v._r = (v._r || 0) + 1;
-    if (v._r > 10) return;
-    setTimeout(() => {
-      if (!videoRef.current) return;
-      videoRef.current.addEventListener("canplay", () => {
-        if (videoRef.current) videoRef.current.classList.add("vfx-video-ready");
-      }, { once: true });
-      videoRef.current.load();
-      videoRef.current.play().catch(() => {});
-    }, 3000);
-  };
-
+  const isVideoPreview = item.previewUrl && /\.webm(\?|$)/i.test(item.previewUrl);
   return (
     <div
       className="vfx-card"
@@ -417,12 +357,13 @@ function VFXCard({ item, onDownload, onEdit }) {
         else onDownload(item);
       }}
     >
-      <div className="vfx-thumb" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
-        {thumbnailUrl
-          ? <img src={thumbnailUrl} alt={item.title} className="vfx-thumb-img" />
-          : <div className="vfx-thumb-empty"><FilmIcon size={28} style={{ opacity: 0.3 }} /><span>Coming soon</span></div>
+      <div className="vfx-thumb">
+        {item.previewUrl
+          ? isVideoPreview
+            ? <video src={item.previewUrl} autoPlay muted loop playsInline className="vfx-thumb-img" />
+            : <img src={item.previewUrl} alt={item.title} className="vfx-thumb-img" />
+          : <div className="vfx-thumb-empty"><FilmIcon size={28} style={{ opacity: 0.3 }} /><span>No preview</span></div>
         }
-        {videoSrc && <video ref={videoRef} muted loop playsInline className="vfx-video" onError={handleVideoError} />}
       </div>
       <div className="vfx-footer">
         <button className="vfx-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Edit">
@@ -660,30 +601,23 @@ function UploadPanel({ onAdd, onClose }) {
   );
 }
 
-const GRAVITY_GRID = [
-  ["north_west","north","north_east"],
-  ["west",      "center","east"],
-  ["south_west","south","south_east"],
-];
-
 /* ─── VFXEditPanel ─── */
 
 function VFXEditPanel({ item, onSave, onDelete, onClose }) {
   const [title,          setTitle]          = useState(item.title);
-  const [previewOffset,  setPreviewOffset]  = useState(item.previewOffset  || 0);
-  const [previewCrop,    setPreviewCrop]    = useState(item.previewCrop    || "fill");
-  const [previewGravity, setPreviewGravity] = useState(item.previewGravity || "auto");
-  const [videoDur,       setVideoDur]       = useState(0);
+  const [previewFileObj, setPreviewFileObj] = useState(null);
+  const [previewName,    setPreviewName]    = useState(null);
+  const [previewLocal,   setPreviewLocal]   = useState(null);
   const [saving,         setSaving]         = useState(false);
   const [confirmDel,     setConfirmDel]     = useState(false);
-  const editVidRef = useRef(null);
+  const previewFileRef = useRef(null);
 
-  const liveThumbnail = getThumbnailUrl(item.rawUrl, previewOffset, previewCrop, previewGravity);
-
-  const handleSeek = (e) => {
-    const t = Number(e.target.value);
-    setPreviewOffset(t);
-    if (editVidRef.current) editVidRef.current.currentTime = t;
+  const onPreviewChange = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    setPreviewFileObj(f);
+    setPreviewName(f?.name ?? null);
+    if (previewLocal) URL.revokeObjectURL(previewLocal);
+    setPreviewLocal(f ? URL.createObjectURL(f) : null);
   };
 
   const handleSave = async (e) => {
@@ -691,10 +625,19 @@ function VFXEditPanel({ item, onSave, onDelete, onClose }) {
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await onSave(item.id, { title: title.trim(), previewOffset: Number(previewOffset), previewCrop, previewGravity });
+      let previewBase64   = null;
+      let previewMimeType = null;
+      if (previewFileObj) {
+        previewBase64   = await fileToBase64(previewFileObj);
+        previewMimeType = previewFileObj.type || "image/jpeg";
+      }
+      await onSave(item.id, { title: title.trim(), previewBase64, previewFileName: previewName, previewMimeType });
       onClose();
     } finally { setSaving(false); }
   };
+
+  const displayPreview = previewLocal || item.previewUrl;
+  const isVideoPreview = displayPreview && /\.webm(\?|$)/i.test(displayPreview);
 
   return (
     <div className="upload-panel">
@@ -715,59 +658,24 @@ function VFXEditPanel({ item, onSave, onDelete, onClose }) {
           <label className="form-label">Title</label>
           <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
-
-        {/* Video frame picker */}
         <div>
-          <label className="form-label">
-            Thumbnail frame
-            {videoDur > 0 && <span style={{ color: "rgba(255,255,255,.35)", fontSize: 11, marginLeft: 6 }}>
-              {Math.round(previewOffset)}s / {Math.round(videoDur)}s
-            </span>}
-          </label>
-          <div style={{ borderRadius: 10, overflow: "hidden", background: "#04111e", aspectRatio: "16/9", position: "relative" }}>
-            {liveThumbnail && !videoDur
-              ? <img src={liveThumbnail} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="" />
-              : null}
-            {item.rawUrl && (
-              <video ref={editVidRef} src={item.rawUrl} muted preload="metadata"
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: videoDur ? "block" : "none", position: "absolute", inset: 0 }}
-                onLoadedMetadata={() => {
-                  const dur = editVidRef.current?.duration || 0;
-                  setVideoDur(dur);
-                  if (editVidRef.current) editVidRef.current.currentTime = previewOffset;
-                }}
-              />
-            )}
-          </div>
-          {videoDur > 0 && (
-            <input type="range" min="0" max={Math.floor(videoDur)} step="0.5"
-              value={previewOffset} onChange={handleSeek} className="vfx-frame-slider" />
+          <label className="form-label">Preview <span style={{ color: "rgba(255,255,255,.3)", fontSize: 11 }}>(replaces current)</span></label>
+          {displayPreview && (
+            <div style={{ marginBottom: 8, borderRadius: 10, overflow: "hidden", aspectRatio: "16/9", background: "#04111e" }}>
+              {isVideoPreview
+                ? <video src={displayPreview} autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                : <img src={displayPreview} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              }
+            </div>
           )}
-        </div>
-
-        {/* Crop position + mode */}
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <div>
-            <label className="form-label">Crop position</label>
-            <div className="gravity-picker">
-              {GRAVITY_GRID.flat().map((g) => (
-                <button key={g} type="button"
-                  className={`gravity-btn${previewGravity === g || (g === "center" && previewGravity === "auto") ? " active" : ""}`}
-                  onClick={() => setPreviewGravity(g)} title={g.replace(/_/g, " ")} />
-              ))}
-            </div>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="form-label">Crop mode</label>
-            <div className="select-wrap">
-              <select className="form-input form-select" value={previewCrop} onChange={(e) => setPreviewCrop(e.target.value)}>
-                <option value="fill" style={{ background: "#1c1b3a" }}>Fill (crop to fit)</option>
-                <option value="fit"  style={{ background: "#1c1b3a" }}>Fit (full frame)</option>
-                <option value="pad"  style={{ background: "#1c1b3a" }}>Pad (dark border)</option>
-              </select>
-              <ChevronDownIcon size={16} className="select-chevron" />
-            </div>
-          </div>
+          <button type="button" onClick={() => previewFileRef.current?.click()} className="file-pick-btn">
+            <span className="file-pick-icon" style={{ color: "#84CEE0" }}><FileIcon size={18} /></span>
+            <span className="file-pick-text">
+              <span className="file-pick-name">{previewName ?? "Choose a preview file"}</span>
+              <span className="file-pick-hint">JPEG, PNG, GIF, WebM</span>
+            </span>
+          </button>
+          <input ref={previewFileRef} type="file" accept="image/jpeg,image/png,image/gif,video/webm" className="sr-only" onChange={onPreviewChange} />
         </div>
         <button type="submit" disabled={saving} className="submit-btn"
           style={{ background: "#A6B5E9", color: "#1a1730", boxShadow: "0 10px 30px -10px rgba(166,181,233,0.5)" }}>
@@ -794,17 +702,16 @@ function VFXEditPanel({ item, onSave, onDelete, onClose }) {
 /* ─── VFXUploadPanel ─── */
 
 function VFXUploadPanel({ onAdd, onClose }) {
-  const [fileObj,       setFileObj]       = useState(null);
-  const [fileName,      setFileName]      = useState(null);
-  const [localVideoUrl, setLocalVideoUrl] = useState(null);
-  const [duration,      setDuration]      = useState(0);
-  const [posterOffset,  setPosterOffset]  = useState(0);
-  const [title,         setTitle]         = useState("");
-  const [uploading,     setUploading]     = useState(false);
-  const [uploadErr,     setUploadErr]     = useState(null);
-  const [frameDark,     setFrameDark]     = useState(false);
-  const fileRef     = useRef(null);
-  const localVidRef = useRef(null);
+  const [fileObj,        setFileObj]        = useState(null);
+  const [fileName,       setFileName]       = useState(null);
+  const [previewFileObj, setPreviewFileObj] = useState(null);
+  const [previewName,    setPreviewName]    = useState(null);
+  const [previewLocal,   setPreviewLocal]   = useState(null);
+  const [title,          setTitle]          = useState("");
+  const [uploading,      setUploading]      = useState(false);
+  const [uploadErr,      setUploadErr]      = useState(null);
+  const fileRef        = useRef(null);
+  const previewFileRef = useRef(null);
 
   const canSubmit = title.trim().length > 0 && fileObj && !uploading;
 
@@ -812,36 +719,14 @@ function VFXUploadPanel({ onAdd, onClose }) {
     const f = e.target.files?.[0] ?? null;
     setFileObj(f);
     setFileName(f?.name ?? null);
-    if (localVideoUrl) URL.revokeObjectURL(localVideoUrl);
-    if (f) {
-      setLocalVideoUrl(URL.createObjectURL(f));
-      setPosterOffset(0);
-      setDuration(0);
-    } else {
-      setLocalVideoUrl(null);
-    }
   };
 
-  const handleMetadata = () => {
-    const v = localVidRef.current;
-    if (!v) return;
-    const dur = v.duration || 0;
-    setDuration(dur);
-    const mid = Math.floor(dur / 2);
-    setPosterOffset(mid);
-    v.currentTime = mid;
-  };
-
-  const handleSeeked = () => {
-    const v = localVidRef.current;
-    if (!v) return;
-    v.play().then(() => { v.pause(); setFrameDark(false); }).catch(() => setFrameDark(true));
-  };
-
-  const handleSlider = (e) => {
-    const t = Number(e.target.value);
-    setPosterOffset(t);
-    if (localVidRef.current) localVidRef.current.currentTime = t;
+  const onPreviewChange = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    setPreviewFileObj(f);
+    setPreviewName(f?.name ?? null);
+    if (previewLocal) URL.revokeObjectURL(previewLocal);
+    setPreviewLocal(f ? URL.createObjectURL(f) : null);
   };
 
   const submit = async (e) => {
@@ -852,9 +737,17 @@ function VFXUploadPanel({ onAdd, onClose }) {
     try {
       const fileBase64 = await fileToBase64(fileObj);
       const mimeType   = fileObj.type || "video/mp4";
-      await onAdd({ title: title.trim(), fileBase64, fileName, mimeType, previewOffset: posterOffset });
-      setTitle(""); setFileObj(null); setFileName(null); setLocalVideoUrl(null);
+      let previewBase64   = null;
+      let previewMimeType = null;
+      if (previewFileObj) {
+        previewBase64   = await fileToBase64(previewFileObj);
+        previewMimeType = previewFileObj.type || "image/jpeg";
+      }
+      await onAdd({ title: title.trim(), fileBase64, fileName, mimeType, previewBase64, previewFileName: previewName, previewMimeType });
+      setTitle(""); setFileObj(null); setFileName(null);
+      setPreviewFileObj(null); setPreviewName(null); setPreviewLocal(null);
       if (fileRef.current) fileRef.current.value = "";
+      if (previewFileRef.current) previewFileRef.current.value = "";
       onClose?.();
     } catch (err) {
       setUploadErr("Помилка: " + (err?.message || String(err)));
@@ -862,6 +755,8 @@ function VFXUploadPanel({ onAdd, onClose }) {
       setUploading(false);
     }
   };
+
+  const isVideoPreview = previewLocal && /\.webm$/i.test(previewName || "");
 
   return (
     <div className="upload-panel">
@@ -890,38 +785,27 @@ function VFXUploadPanel({ onAdd, onClose }) {
           <input ref={fileRef} type="file" accept="video/*" className="sr-only" onChange={onFileChange} />
         </div>
 
-        {localVideoUrl && (
-          <div>
-            <label className="form-label">
-              Thumbnail frame
-              {duration > 0 && <span style={{ color: "rgba(255,255,255,.35)", fontSize: 11, marginLeft: 6 }}>
-                {Math.round(posterOffset)}s / {Math.round(duration)}s
-              </span>}
-            </label>
-            <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", background: "#04111e", aspectRatio: "16/9" }}>
-              <video
-                ref={localVidRef}
-                src={localVideoUrl}
-                muted playsInline preload="auto"
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                onLoadedMetadata={handleMetadata}
-                onSeeked={handleSeeked}
-              />
-              {frameDark && (
-                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.55)", fontSize: 11, color: "rgba(255,255,255,.6)", textAlign: "center", padding: 12 }}>
-                  Browser can't preview this format.<br />Frame offset will be extracted by Cloudinary.
-                </div>
-              )}
+        <div>
+          <label className="form-label">
+            Preview <span style={{ color: "rgba(255,255,255,.3)", fontSize: 11 }}>(optional — JPEG, PNG, GIF, WebM)</span>
+          </label>
+          <button type="button" onClick={() => previewFileRef.current?.click()} className="file-pick-btn">
+            <span className="file-pick-icon" style={{ color: "#84CEE0" }}><FileIcon size={18} /></span>
+            <span className="file-pick-text">
+              <span className="file-pick-name">{previewName ?? "Choose a preview file"}</span>
+              <span className="file-pick-hint">{previewName ? "Ready to upload" : "Still or animated image"}</span>
+            </span>
+          </button>
+          <input ref={previewFileRef} type="file" accept="image/jpeg,image/png,image/gif,video/webm" className="sr-only" onChange={onPreviewChange} />
+          {previewLocal && (
+            <div style={{ marginTop: 8, borderRadius: 10, overflow: "hidden", aspectRatio: "16/9", background: "#04111e" }}>
+              {isVideoPreview
+                ? <video src={previewLocal} autoPlay muted loop playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                : <img src={previewLocal} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              }
             </div>
-            {duration > 0 && (
-              <input
-                type="range" min="0" max={Math.floor(duration)} step="0.5"
-                value={posterOffset} onChange={handleSlider}
-                className="vfx-frame-slider"
-              />
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         <div>
           <label className="form-label">Title</label>
@@ -1277,21 +1161,21 @@ export default function App() {
   }, [showToast]);
 
   const editVfx = useCallback(async (id, updates) => {
-    setVfxItems((prev) => prev.map((v) => {
-      if (v.id !== id) return v;
-      const merged = { ...v, ...updates };
-      return {
-        ...merged,
-        previewUrl: getThumbnailUrl(v.rawUrl, merged.previewOffset, merged.previewCrop, merged.previewGravity),
-      };
-    }));
+    setVfxItems((prev) => prev.map((v) => v.id !== id ? v : { ...v, title: updates.title }));
     showToast(`Updated "${updates.title}"`);
     if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
       try {
-        await fetch(APPS_SCRIPT_URL, {
+        const res  = await fetch(APPS_SCRIPT_URL, {
           method: "POST", headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({ action: "updateVfx", id, ...updates }),
         });
+        const text = await res.text();
+        try {
+          const result = JSON.parse(text);
+          if (result.previewUrl) {
+            setVfxItems((prev) => prev.map((v) => v.id === id ? { ...v, previewUrl: result.previewUrl } : v));
+          }
+        } catch {}
       } catch { /* silent */ }
     }
   }, [showToast]);
@@ -1312,7 +1196,7 @@ export default function App() {
   const addVfx = useCallback(async (data) => {
     setIsUploading(true);
     const tempId = `vtmp_${Date.now().toString(36)}`;
-    const entry  = { id: tempId, title: data.title, previewUrl: null, rawUrl: null, webmUrl: null, previewOffset: data.previewOffset || 0, previewCrop: "fill", previewGravity: "auto" };
+    const entry  = { id: tempId, title: data.title, previewUrl: null, rawUrl: null };
     setVfxItems((prev) => [entry, ...prev]);
     try {
       if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {

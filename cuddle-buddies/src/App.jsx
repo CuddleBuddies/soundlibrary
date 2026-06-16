@@ -154,7 +154,7 @@ const VFX_PLACEHOLDERS = [
 const getPreviewUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
   if (!url) return null;
   const so = offset > 0 ? `so_${offset},` : "";
-  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},w_400,q_auto,f_mp4/`);
+  return url.replace("/upload/", `/upload/${so}c_${crop},ar_16:9,g_${gravity},w_400,q_auto,f_webm,vc_vp9/`);
 };
 
 const getThumbnailUrl = (url, offset = 0, crop = "fill", gravity = "auto") => {
@@ -168,6 +168,7 @@ const normalizeVfxItem = (v) => ({
   title:          String(v.Title || v.title || "Untitled"),
   previewUrl:     v.Preview_URL     || v.previewUrl     || null,
   rawUrl:         v.Raw_URL         || v.rawUrl         || null,
+  webmUrl:        v.Webm_URL        || v.webmUrl        || null,
   previewOffset:  Number(v.Preview_Offset  || v.previewOffset  || 0),
   previewCrop:    String(v.Preview_Crop    || v.previewCrop    || "fill"),
   previewGravity: String(v.Preview_Gravity || v.previewGravity || "auto"),
@@ -361,14 +362,27 @@ function VFXCard({ item, onDownload, onEdit }) {
   const thumbnailUrl = (item.previewUrl && item.previewUrl !== item.rawUrl)
     ? item.previewUrl
     : getThumbnailUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
+  const videoSrc = item.webmUrl || getPreviewUrl(item.rawUrl, item.previewOffset, item.previewCrop, item.previewGravity);
 
   const handleEnter = () => {
     const v = videoRef.current;
-    if (v) v.play().catch(() => {});
+    if (!v) return;
+    if (!v.getAttribute("src") && videoSrc) {
+      v.addEventListener("canplay", () => {
+        if (videoRef.current) videoRef.current.style.opacity = "1";
+      }, { once: true });
+      v.src = videoSrc;
+    } else if (v.getAttribute("src")) {
+      v.style.opacity = "1";
+    }
+    v.play().catch(() => {});
   };
   const handleLeave = () => {
     const v = videoRef.current;
-    if (v) { v.pause(); v.currentTime = 0; }
+    if (!v) return;
+    v.style.opacity = "0";
+    v.pause();
+    v.currentTime = 0;
   };
 
   return (
@@ -390,15 +404,7 @@ function VFXCard({ item, onDownload, onEdit }) {
           ? <img src={thumbnailUrl} alt={item.title} className="vfx-thumb-img" />
           : <div className="vfx-thumb-empty"><FilmIcon size={28} style={{ opacity: 0.3 }} /><span>Coming soon</span></div>
         }
-        {item.rawUrl && (
-          <video
-            ref={videoRef}
-            src={item.rawUrl}
-            muted loop playsInline
-            preload="none"
-            className="vfx-video"
-          />
-        )}
+        {videoSrc && <video ref={videoRef} muted loop playsInline className="vfx-video" />}
       </div>
       <div className="vfx-footer">
         <button className="vfx-edit-btn" onClick={(e) => { e.stopPropagation(); onEdit(item); }} title="Edit">
@@ -1288,7 +1294,7 @@ export default function App() {
   const addVfx = useCallback(async (data) => {
     setIsUploading(true);
     const tempId = `vtmp_${Date.now().toString(36)}`;
-    const entry  = { id: tempId, title: data.title, previewUrl: null, rawUrl: null, previewOffset: data.previewOffset || 0, previewCrop: "fill", previewGravity: "auto" };
+    const entry  = { id: tempId, title: data.title, previewUrl: null, rawUrl: null, webmUrl: null, previewOffset: data.previewOffset || 0, previewCrop: "fill", previewGravity: "auto" };
     setVfxItems((prev) => [entry, ...prev]);
     try {
       if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {

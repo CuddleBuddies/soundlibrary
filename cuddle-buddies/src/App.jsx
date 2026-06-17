@@ -1623,15 +1623,21 @@ export default function App() {
 
       <div className="page-content">
 
-        {/* ── Header with tabs inside ── */}
+        {/* ── Slim top-bar header ── */}
         <header className="header">
           <div className="header-card">
-            <button className="header-refresh-btn" onClick={() => window.location.reload()} aria-label="Refresh page">
-              <img src={logoSrc} alt="Cuddle Buddies DJ" className="header-logo" />
-            </button>
+            <div className="header-actions header-actions-left">
+              <div className="sound-count">
+                {headerLoading
+                  ? <div className="sound-count-num" style={{ fontSize:18, opacity:0.5 }}>…</div>
+                  : <div className="sound-count-num">{headerCount}</div>}
+                <div className="sound-count-label">{headerCountLabel}</div>
+              </div>
+            </div>
 
             <div className="header-center">
-              <div className="header-text" onClick={() => window.location.reload()} style={{ cursor:"pointer" }}>
+              <div className="header-brand" onClick={() => window.location.reload()} style={{ cursor:"pointer" }}>
+                <img src={logoSrc} alt="Cuddle Buddies DJ" className="header-logo" />
                 <h1 className="header-title">
                   <span className="header-title-gradient">The Great Library of Cuddles</span>
                 </h1>
@@ -1643,13 +1649,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="header-actions">
-              <div className="sound-count">
-                {headerLoading
-                  ? <div className="sound-count-num" style={{ fontSize:18, opacity:0.5 }}>…</div>
-                  : <div className="sound-count-num">{headerCount}</div>}
-                <div className="sound-count-label">{headerCountLabel}</div>
-              </div>
+            <div className="header-actions header-actions-right">
               {!(activeTab === "txt" && isConstructorOpen) && (
                 <button
                   onClick={() => !isUploading && setShowUpload(true)}

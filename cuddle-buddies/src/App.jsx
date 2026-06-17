@@ -28,11 +28,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW5gnkIO6zlHFs
 
 /* ─── PasswordGate ─── */
 
-/* Password is read from the VITE_SITE_PASSWORD env var (set it in Vercel →
-   Project → Settings → Environment Variables, then redeploy). Falls back to
-   the built-in value when the var is not defined. Note: Vite bakes this into
-   the client bundle, so it is hidden from the repo but not from the browser. */
-const CORRECT_PASSWORD = import.meta.env.VITE_SITE_PASSWORD || "BuddleCuddiesDraft666RyanGosling7minutes";
+const CORRECT_PASSWORD = "BuddleCuddiesDraft666RyanGosling7minutes";
 const STORAGE_KEY = "cb_auth";
 
 function PasswordGate({ children }) {
@@ -1081,10 +1077,12 @@ function drawStcIcon(ctx, id, x, y, size) {
   ctx.lineJoin = "round";
   switch (id) {
     case "instagram": {
-      const r = size * 0.25;
+      /* outline glyph — thick rounded square, inner ring, filled top-right dot */
+      ctx.lineWidth = size * 0.085;
+      const r = size * 0.28;
       ctx.beginPath(); ctx.roundRect(x, y, size, size, r); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x+size/2, y+size/2, size*0.27, 0, Math.PI*2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x+size*0.73, y+size*0.27, size*0.06, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + size/2, y + size/2, size * 0.265, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x + size*0.75, y + size*0.25, size * 0.062, 0, Math.PI*2); ctx.fill();
       break;
     }
     case "tiktok": {
@@ -1097,23 +1095,27 @@ function drawStcIcon(ctx, id, x, y, size) {
       break;
     }
     case "youtube": {
-      const rr = size * 0.28;
-      ctx.beginPath(); ctx.roundRect(x, y+size*0.12, size, size*0.76, rr); ctx.stroke();
+      /* solid rounded rectangle with a white play triangle */
+      const rr  = size * 0.24;
+      const top = y + size * 0.17, h = size * 0.66;
+      ctx.beginPath(); ctx.roundRect(x, top, size, h, rr); ctx.fill();
+      const cy = top + h / 2;
+      ctx.fillStyle = "#fff";
       ctx.beginPath();
-      ctx.moveTo(x+size*0.4, y+size*0.3);
-      ctx.lineTo(x+size*0.4, y+size*0.7);
-      ctx.lineTo(x+size*0.72, y+size*0.5);
+      ctx.moveTo(x + size*0.41, cy - h*0.24);
+      ctx.lineTo(x + size*0.41, cy + h*0.24);
+      ctx.lineTo(x + size*0.63, cy);
       ctx.closePath(); ctx.fill();
       break;
     }
     case "facebook": {
-      const rf = size * 0.22;
-      ctx.beginPath(); ctx.roundRect(x, y, size, size, rf); ctx.stroke();
-      ctx.save();
-      ctx.font = `700 ${Math.round(size*0.6)}px 'Readex Pro', sans-serif`;
+      /* solid rounded square with a white "f" */
+      const rf = size * 0.2;
+      ctx.beginPath(); ctx.roundRect(x, y, size, size, rf); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = `700 ${Math.round(size*0.74)}px 'Readex Pro', sans-serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("f", x+size/2+size*0.02, y+size/2+size*0.04);
-      ctx.restore();
+      ctx.fillText("f", x + size/2 + size*0.03, y + size/2 + size*0.05);
       break;
     }
     case "website": {
@@ -1151,7 +1153,7 @@ function SpecialThanksConstructor({ onClose }) {
       ctx.textBaseline = "middle";
 
       const lines = headerText.split("\n").filter(l => l.trim());
-      const LINE_H = 70, ICON = 50, GAP = 20, ROW_H = 68, SEC_GAP = 50;
+      const LINE_H = 70, ICON = 50, GAP = 20, ROW_H = 68, SEC_GAP = 35;
       const active = socials.filter(s => s.active && s.handle.trim());
       const totalH = lines.length * LINE_H + (active.length ? SEC_GAP : 0) + active.length * ROW_H;
       let y = (H - totalH) / 2 + LINE_H / 2;

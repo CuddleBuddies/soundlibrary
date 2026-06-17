@@ -149,10 +149,10 @@ select option { color: #fff; }
 }
 .header-title-plain { color: #fff; }
 
-.sound-count     { display: flex; align-items: baseline; gap: 8px; text-align: left; }
+.sound-count     { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 .sound-count-num { font-size: 22px; font-weight: 800; line-height: 1; color: #F7CB07; transition: color 0.7s ease; }
 @media (min-width: 640px) { .sound-count-num { font-size: 26px; } }
-.sound-count-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.5); transition: color 0.7s ease; white-space: nowrap; line-height: 1.15; }
+.sound-count-label { font-size: 10px; letter-spacing: .02em; color: rgba(255,255,255,.5); transition: color 0.7s ease; white-space: nowrap; line-height: 1.15; }
 
 .upload-trigger-btn {
   display: flex;
@@ -687,10 +687,10 @@ body.theme-txt { background: #060b16; }
 .upload-trigger-txt { background: #84CEE0 !important; box-shadow: 0 10px 26px -10px rgba(132,206,224,.65) !important; }
 .upload-trigger-vfx { background: #7AE0BF !important; box-shadow: 0 10px 26px -10px rgba(122,224,191,.65) !important; }
 
-/* ── TXT grid (same sizing as VFX) ── */
-.txt-section { margin-top: 0; padding: 0 5%; }
+/* ── TXT grid (6 columns, same card size as VFX) ── */
+.txt-section { margin-top: 0; }
 .txt-grid {
-  display: grid; gap: 9px; grid-template-columns: repeat(5, 1fr);
+  display: grid; gap: 9px; grid-template-columns: repeat(6, 1fr);
 }
 @media (min-width: 900px) { .txt-grid { gap: 10px; } }
 

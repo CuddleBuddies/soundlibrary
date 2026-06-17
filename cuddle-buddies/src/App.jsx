@@ -1095,27 +1095,35 @@ function drawStcIcon(ctx, id, x, y, size) {
       break;
     }
     case "youtube": {
-      /* solid rounded rectangle with a white play triangle */
+      const tmp = document.createElement("canvas");
+      tmp.width = Math.ceil(size) + 2; tmp.height = Math.ceil(size) + 2;
+      const tc = tmp.getContext("2d");
       const rr  = size * 0.24;
-      const top = y + size * 0.17, h = size * 0.66;
-      ctx.beginPath(); ctx.roundRect(x, top, size, h, rr); ctx.fill();
-      const cy = top + h / 2;
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.moveTo(x + size*0.41, cy - h*0.24);
-      ctx.lineTo(x + size*0.41, cy + h*0.24);
-      ctx.lineTo(x + size*0.63, cy);
-      ctx.closePath(); ctx.fill();
+      const ot = size * 0.17, h = size * 0.66;
+      tc.fillStyle = ctx.fillStyle;
+      tc.beginPath(); tc.roundRect(0, ot, size, h, rr); tc.fill();
+      tc.globalCompositeOperation = "destination-out";
+      const cy2 = ot + h / 2;
+      tc.beginPath();
+      tc.moveTo(size*0.41, cy2 - h*0.24);
+      tc.lineTo(size*0.41, cy2 + h*0.24);
+      tc.lineTo(size*0.63, cy2);
+      tc.closePath(); tc.fill();
+      ctx.drawImage(tmp, x, y);
       break;
     }
     case "facebook": {
-      /* solid rounded square with a white "f" */
+      const tmp = document.createElement("canvas");
+      tmp.width = Math.ceil(size) + 2; tmp.height = Math.ceil(size) + 2;
+      const tc = tmp.getContext("2d");
       const rf = size * 0.2;
-      ctx.beginPath(); ctx.roundRect(x, y, size, size, rf); ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = `700 ${Math.round(size*0.74)}px 'Readex Pro', sans-serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("f", x + size/2 + size*0.03, y + size/2 + size*0.05);
+      tc.fillStyle = ctx.fillStyle;
+      tc.beginPath(); tc.roundRect(0, 0, size, size, rf); tc.fill();
+      tc.globalCompositeOperation = "destination-out";
+      tc.font = `700 ${Math.round(size*0.74)}px 'Readex Pro', sans-serif`;
+      tc.textAlign = "center"; tc.textBaseline = "middle";
+      tc.fillText("f", size/2 + size*0.03, size/2 + size*0.05);
+      ctx.drawImage(tmp, x, y);
       break;
     }
     case "website": {

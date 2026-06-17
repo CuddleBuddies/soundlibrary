@@ -166,7 +166,8 @@ const normalizeRemoteSound = (s) => {
   try {
     const rawCat = String(s.category || "SFX");
     const category = LEGACY_CAT_MAP[rawCat] ?? rawCat;
-    return { ...s, name:String(s.name||"Unknown Sound"), category, duration:parseFloat(s.duration)||1, wave:makeWave(String(s.name||"sound")) };
+    const dur = parseFloat(s.duration);
+    return { ...s, name:String(s.name||"Unknown Sound"), category, duration:dur||1, _meta:dur>0, wave:makeWave(String(s.name||"sound")) };
   } catch { return null; }
 };
 
@@ -1528,7 +1529,7 @@ export default function App() {
   const addTxt = useCallback(async (data) => {
     setIsUploading(true);
     const tempId=`ttmp_${Date.now().toString(36)}`;
-    setTxtItems(prev => [{ id:tempId, title:data.title, fontName:data.fontName, rawUrl:null }, ...prev]);
+    setTxtItems(prev => [{ id:tempId, title:data.title, previewUrl:null, rawUrl:null }, ...prev]);
     try {
       if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL_HERE") {
         const res=await fetch(APPS_SCRIPT_URL,{ method:"POST", headers:{"Content-Type":"text/plain"}, body:JSON.stringify({ action:"addFont", ...data }) });

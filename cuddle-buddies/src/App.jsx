@@ -1083,11 +1083,12 @@ function drawStcIcon(ctx, id, x, y, size) {
       break;
     }
     case "tiktok": {
-      ctx.lineWidth = lw * 1.15;
-      ctx.beginPath(); ctx.moveTo(x+size*0.55, y+size*0.08); ctx.lineTo(x+size*0.55, y+size*0.72); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x+size*0.38, y+size*0.78, size*0.18, 0, Math.PI*2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x+size*0.55, y+size*0.08);
-      ctx.quadraticCurveTo(x+size*0.82, y+size*0.08, x+size*0.82, y+size*0.3); ctx.stroke();
+      /* Real TikTok note glyph (FontAwesome path, viewBox 0 0 448 512) */
+      const p = new Path2D("M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z");
+      const s = size / 512;
+      ctx.translate(x + (size - 448 * s) / 2, y);
+      ctx.scale(s, s);
+      ctx.fill(p);
       break;
     }
     case "youtube": {
@@ -1613,7 +1614,7 @@ export default function App() {
 
   return (
     <PasswordGate>
-    <div className={`app-root${activeTab==="vfx"?" theme-vfx":activeTab==="txt"?" theme-txt":""}`}>
+    <div className={`app-root${activeTab==="vfx"?" theme-vfx":activeTab==="txt"?" theme-txt":""}${isCEP?" cep":""}`}>
       <div className="orbs-container">
         <div className="orb orb-blue" /><div className="orb orb-green" />
         <div className="orb orb-teal" /><div className="orb orb-deep" />

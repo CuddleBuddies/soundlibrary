@@ -95,26 +95,23 @@ select option { color: #fff; }
   border: 1px solid rgba(255,255,255,.15);
   background: rgba(255,255,255,.06);
   backdrop-filter: blur(24px);
-  padding: 0 20px 16px 0;
+  padding: 14px 20px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: end;
-  gap: 20px;
-  overflow: visible;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;     /* keep every element inside the rounded frame */
   width: 100%;
-  height: 109px;         /* frame; top edge raised 15% vs prev, inner elements overflow */
-  margin-top: 6px;       /* top edge moved up; bottom edge unchanged */
   box-sizing: border-box;
   transition: background 0.7s ease, border-color 0.7s ease;
 }
-@media (min-width: 640px) { .header-card { padding: 0 32px 18px 0; gap: 24px; height: 155px; margin-top: 0; } }
+@media (min-width: 640px) { .header-card { padding: 18px 32px; gap: 24px; } }
 
 .header-center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding-top: 24px;
+  gap: 12px;
   align-self: center;
 }
 
@@ -128,16 +125,13 @@ select option { color: #fff; }
   flex-shrink: 0;
 }
 .header-logo {
-  height: 133px;
+  height: 88px;
   width: auto;
   filter: drop-shadow(0 8px 24px rgba(0,0,0,.55));
   flex-shrink: 0;
-  align-self: flex-end;
-  margin-bottom: -14px;
-  margin-left: -60px;
-  transform: translateY(-25px);
+  align-self: center;
 }
-@media (min-width: 640px) { .header-logo { height: 171px; } }
+@media (min-width: 640px) { .header-logo { height: 120px; } }
 
 .header-text    { min-width: 0; text-align: center; }
 .header-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; align-self: center; justify-self: end; }
@@ -571,7 +565,7 @@ body.theme-vfx { background: #04111e; }
 .theme-vfx .sound-count-label  { color: rgba(255,255,255,.45); }
 
 /* ── tab switcher (now inside header) ── */
-.header-center .tab-switcher { margin-top: 30px; transform: translateY(-25px); }
+.header-center .tab-switcher { margin-top: 0; }
 .tab-switcher {
   display: flex;
   background: rgba(255,255,255,.08);
@@ -689,15 +683,19 @@ body.theme-txt { background: #060b16; }
 .upload-trigger-txt { background: #84CEE0 !important; box-shadow: 0 10px 26px -10px rgba(132,206,224,.65) !important; }
 .upload-trigger-vfx { background: #7AE0BF !important; box-shadow: 0 10px 26px -10px rgba(122,224,191,.65) !important; }
 
-/* ── TXT grid (cards 40% smaller: grid constrained to 60% width, still 6/row) ── */
+/* ── TXT grid (6/row; browser = larger cards, CEP extension = smaller cards) ── */
 .txt-section { margin-top: 0; }
 .txt-grid {
-  display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr);
-  max-width: 60%; margin-left: auto; margin-right: auto;
+  display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr);
+  max-width: 84%; margin-left: auto; margin-right: auto;   /* browser: cards ~40% bigger */
 }
 @media (min-width: 700px)  { .txt-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 900px)  { .txt-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (min-width: 1100px) { .txt-grid { grid-template-columns: repeat(6, 1fr); gap: 9px; } }
+@media (min-width: 1100px) { .txt-grid { grid-template-columns: repeat(6, 1fr); gap: 14px; } }
+
+/* CEP extension: cards ~30% smaller than the browser size */
+.cep .txt-grid { max-width: 42%; gap: 8px; }
+@media (min-width: 1100px) { .cep .txt-grid { gap: 9px; } }
 
 /* ── TXT card ── */
 .txt-card {

@@ -1176,6 +1176,11 @@ function SpecialThanksConstructor({ onClose }) {
     const c = canvasRef.current;
     if (!c) return;
     const url = c.toDataURL("image/png");
+    if (isCEP) {
+      /* Send PNG straight into the Premiere project panel (host writes it to disk & imports) */
+      sendCEP("CB_IMPORT_DATAURL", { name: "Special Thanks", fileName: "special-thanks.png", base64: url.split(",")[1] });
+      return;
+    }
     const a = document.createElement("a");
     a.href = url; a.download = "special-thanks.png";
     document.body.appendChild(a); a.click(); a.remove();
@@ -1691,7 +1696,11 @@ export default function App() {
         {/* ── TXT Section ── */}
         {activeTab === "txt" && (
           <div className="txt-section">
-            <div className="section-search" style={{ display:"flex", justifyContent:"center" }}>
+            {isConstructorOpen ? (
+              <SpecialThanksConstructor onClose={() => setIsConstructorOpen(false)} />
+            ) : (
+            <>
+            <div className="stc-open-wrap">
               <button className="stc-open-btn" onClick={() => setIsConstructorOpen(true)}>
                 ✦ Special Thanks
               </button>
@@ -1710,6 +1719,8 @@ export default function App() {
               <div className="txt-grid">
                 {filteredTxt.map(item => <FontCard key={item.id} item={item} onDownload={downloadTxt} onEdit={setEditingTxt} />)}
               </div>
+            )}
+            </>
             )}
           </div>
         )}
@@ -1857,7 +1868,6 @@ export default function App() {
         )}
       </div>
     </div>
-    {isConstructorOpen && <SpecialThanksConstructor onClose={() => setIsConstructorOpen(false)} />}
     </PasswordGate>
   );
 }

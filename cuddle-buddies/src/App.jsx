@@ -1637,7 +1637,6 @@ export default function App() {
 
             <div className="header-center">
               <div className="header-brand" onClick={() => window.location.reload()} style={{ cursor:"pointer" }}>
-                <img src={logoSrc} alt="Cuddle Buddies DJ" className="header-logo" />
                 <h1 className="header-title">
                   <span className="header-title-gradient">The Great Library of Cuddles</span>
                 </h1>

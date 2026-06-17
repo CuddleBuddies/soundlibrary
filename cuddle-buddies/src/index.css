@@ -92,15 +92,14 @@ select option { color: #fff; }
 @media (min-width: 640px) { .header { padding-top: 40px; } }
 .header-card {
   border-radius: 24px;
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(255,255,255,.06);
-  backdrop-filter: blur(24px);
+  border: none;
+  background: transparent;
   padding: 14px 20px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 16px;
-  overflow: hidden;     /* keep every element inside the rounded frame */
+  overflow: visible;
   width: 100%;
   box-sizing: border-box;
   transition: background 0.7s ease, border-color 0.7s ease;
@@ -125,13 +124,13 @@ select option { color: #fff; }
   flex-shrink: 0;
 }
 .header-logo {
-  height: 119px;
+  height: 137px;
   width: auto;
   filter: drop-shadow(0 8px 24px rgba(0,0,0,.55));
   flex-shrink: 0;
   align-self: center;
 }
-@media (min-width: 640px) { .header-logo { height: 162px; } }
+@media (min-width: 640px) { .header-logo { height: 186px; } }
 
 .header-text    { min-width: 0; text-align: center; }
 .header-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; align-self: center; justify-self: end; }
@@ -561,13 +560,13 @@ body.theme-vfx { background: #04111e; }
 .theme-vfx .orb-deep  { background: #0a3d5c; opacity: .60; filter: blur(150px); }
 .theme-vfx .aurora-overlay { background: rgba(4,17,30,0.32); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4); }
 
-.theme-vfx .header-card    { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.15); }
+.theme-vfx .header-card    { background: transparent; border-color: transparent; }
 .theme-vfx .header-title-plain { color: #fff; }
 .theme-vfx .sound-count-num    { color: #fff; }
 .theme-vfx .sound-count-label  { color: rgba(255,255,255,.45); }
 
 /* ── tab switcher (now inside header) ── */
-.header-center .tab-switcher { margin-top: 0; }
+.header-center .tab-switcher { margin-top: 0; transform: translateY(30px); }
 .tab-switcher {
   display: flex;
   background: rgba(255,255,255,.08);
@@ -679,7 +678,7 @@ body.theme-txt { background: #060b16; }
 .theme-txt .orb-teal  { background: #A6B5E9; opacity: .14; filter: blur(180px); }
 .theme-txt .orb-deep  { background: #030e1a; opacity: .75; filter: blur(150px); }
 .theme-txt .aurora-overlay { background: rgba(6,11,22,0.41); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4); }
-.theme-txt .header-card    { background: rgba(255,255,255,.06); border-color: rgba(132,206,224,.2); }
+.theme-txt .header-card    { background: transparent; border-color: transparent; }
 .theme-txt .sound-count-num    { color: #84CEE0; }
 .theme-txt .sound-count-label  { color: rgba(255,255,255,.45); }
 .upload-trigger-txt { background: #84CEE0 !important; box-shadow: 0 10px 26px -10px rgba(132,206,224,.65) !important; }

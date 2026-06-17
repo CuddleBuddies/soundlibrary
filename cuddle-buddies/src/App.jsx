@@ -28,7 +28,11 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW5gnkIO6zlHFs
 
 /* ─── PasswordGate ─── */
 
-const CORRECT_PASSWORD = "BuddleCuddies123RyanGosling7minutes";
+/* Password is read from the VITE_SITE_PASSWORD env var (set it in Vercel →
+   Project → Settings → Environment Variables, then redeploy). Falls back to
+   the built-in value when the var is not defined. Note: Vite bakes this into
+   the client bundle, so it is hidden from the repo but not from the browser. */
+const CORRECT_PASSWORD = import.meta.env.VITE_SITE_PASSWORD || "BuddleCuddies123RyanGosling7minutes";
 const STORAGE_KEY = "cb_auth";
 
 function PasswordGate({ children }) {

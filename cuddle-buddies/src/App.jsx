@@ -1058,6 +1058,171 @@ function TXTUploadPanel({ onAdd, onClose }) {
   );
 }
 
+/* ─── Special Thanks Constructor ─── */
+
+const STC_PLATFORMS = [
+  { id: "instagram", label: "Instagram", defaultHandle: "sammichicken" },
+  { id: "tiktok",    label: "TikTok",    defaultHandle: "sammichicken" },
+  { id: "youtube",   label: "YouTube",   defaultHandle: "justgunnerstunner" },
+  { id: "facebook",  label: "Facebook",  defaultHandle: "Gunner-the-Stunner" },
+  { id: "website",   label: "Website",   defaultHandle: "" },
+];
+
+function drawStcIcon(ctx, id, x, y, size) {
+  ctx.save();
+  const lw = Math.max(2.5, size * 0.065);
+  ctx.lineWidth = lw;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  switch (id) {
+    case "instagram": {
+      const r = size * 0.25;
+      ctx.beginPath(); ctx.roundRect(x, y, size, size, r); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x+size/2, y+size/2, size*0.27, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x+size*0.73, y+size*0.27, size*0.06, 0, Math.PI*2); ctx.fill();
+      break;
+    }
+    case "tiktok": {
+      ctx.lineWidth = lw * 1.15;
+      ctx.beginPath(); ctx.moveTo(x+size*0.55, y+size*0.08); ctx.lineTo(x+size*0.55, y+size*0.72); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x+size*0.38, y+size*0.78, size*0.18, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+size*0.55, y+size*0.08);
+      ctx.quadraticCurveTo(x+size*0.82, y+size*0.08, x+size*0.82, y+size*0.3); ctx.stroke();
+      break;
+    }
+    case "youtube": {
+      const rr = size * 0.28;
+      ctx.beginPath(); ctx.roundRect(x, y+size*0.12, size, size*0.76, rr); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x+size*0.4, y+size*0.3);
+      ctx.lineTo(x+size*0.4, y+size*0.7);
+      ctx.lineTo(x+size*0.72, y+size*0.5);
+      ctx.closePath(); ctx.fill();
+      break;
+    }
+    case "facebook": {
+      const rf = size * 0.22;
+      ctx.beginPath(); ctx.roundRect(x, y, size, size, rf); ctx.stroke();
+      ctx.save();
+      ctx.font = `700 ${Math.round(size*0.6)}px 'Readex Pro', sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("f", x+size/2+size*0.02, y+size/2+size*0.04);
+      ctx.restore();
+      break;
+    }
+    case "website": {
+      const cx = x+size/2, cy = y+size/2, r = size*0.45;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx-r, cy); ctx.lineTo(cx+r, cy); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(cx, cy, r*0.4, r, 0, 0, Math.PI*2); ctx.stroke();
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+function SpecialThanksConstructor({ onClose }) {
+  const canvasRef = useRef(null);
+  const [headerText, setHeaderText] = useState("Camille, Bill and Bree\nFinn, Erin & Gabe");
+  const [socials, setSocials] = useState(
+    STC_PLATFORMS.map(p => ({ ...p, active: p.id !== "website", handle: p.defaultHandle }))
+  );
+
+  const toggleSocial = (id) => setSocials(prev => prev.map(s => s.id === id ? { ...s, active: !s.active } : s));
+  const updateHandle = (id, val) => setSocials(prev => prev.map(s => s.id === id ? { ...s, handle: val } : s));
+
+  useEffect(() => {
+    const render = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      const C = "#034159";
+      ctx.fillStyle = C;
+      ctx.strokeStyle = C;
+      ctx.textBaseline = "middle";
+
+      const lines = headerText.split("\n").filter(l => l.trim());
+      const LINE_H = 70, ICON = 50, GAP = 20, ROW_H = 68, SEC_GAP = 50;
+      const active = socials.filter(s => s.active && s.handle.trim());
+      const totalH = lines.length * LINE_H + (active.length ? SEC_GAP : 0) + active.length * ROW_H;
+      let y = (H - totalH) / 2 + LINE_H / 2;
+
+      ctx.font = "600 58px 'Readex Pro', sans-serif";
+      ctx.textAlign = "center";
+      lines.forEach(line => { ctx.fillStyle = C; ctx.fillText(line.trim(), W / 2, y); y += LINE_H; });
+
+      y += SEC_GAP;
+      ctx.font = "700 49px 'Readex Pro', sans-serif";
+      active.forEach(s => {
+        const tw = ctx.measureText(s.handle).width;
+        const rw = ICON + GAP + tw;
+        const sx = (W - rw) / 2;
+        ctx.strokeStyle = C; ctx.fillStyle = C;
+        drawStcIcon(ctx, s.id, sx, y - ICON / 2, ICON);
+        ctx.font = "700 49px 'Readex Pro', sans-serif";
+        ctx.textAlign = "left"; ctx.fillStyle = C; ctx.textBaseline = "middle";
+        ctx.fillText(s.handle, sx + ICON + GAP, y);
+        ctx.textAlign = "center";
+        y += ROW_H;
+      });
+    };
+    document.fonts.ready.then(render);
+  }, [headerText, socials]);
+
+  const exportPNG = () => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const url = c.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url; a.download = "special-thanks.png";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  return (
+    <div className="stc-overlay">
+      <div className="stc-panel">
+        <button className="stc-close" onClick={onClose}><XIcon size={20} /></button>
+        <div className="stc-left">
+          <h2 className="stc-heading">Special Thanks</h2>
+          <p className="stc-subheading">Design a transparent overlay for your video credits.</p>
+          <div className="stc-field">
+            <label className="stc-label">Title / Header</label>
+            <textarea className="stc-textarea" rows={3} value={headerText}
+              onChange={e => setHeaderText(e.target.value)} placeholder="Enter names, one group per line…" />
+          </div>
+          <div className="stc-field">
+            <label className="stc-label">Social Platforms</label>
+            <div className="stc-socials">
+              {socials.map(s => (
+                <div key={s.id} className={`stc-social-row${s.active ? "" : " stc-social-off"}`}>
+                  <label className="stc-checkbox-wrap">
+                    <input type="checkbox" checked={s.active} onChange={() => toggleSocial(s.id)} className="sr-only" />
+                    <span className={`stc-check${s.active ? " stc-check-on" : ""}`}>{s.active && <CheckIcon size={12} />}</span>
+                    <span className="stc-social-name">{s.label}</span>
+                  </label>
+                  <input className="stc-social-input" value={s.handle}
+                    onChange={e => updateHandle(s.id, e.target.value)} placeholder={`@${s.id}`} disabled={!s.active} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <button className="stc-export-btn" onClick={exportPNG}>
+            <DownloadIcon size={17} /> Export Transparent PNG
+          </button>
+        </div>
+        <div className="stc-right">
+          <div className="stc-canvas-wrap">
+            <canvas ref={canvasRef} width={1400} height={900} className="stc-canvas" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── App ─── */
 
 export default function App() {
@@ -1076,6 +1241,7 @@ export default function App() {
   const [editingTxt, setEditingTxt] = useState(null);
   const [txtQuery,   setTxtQuery]   = useState("");
   const txtLoadedRef = useRef(false);
+  const [isConstructorOpen, setIsConstructorOpen] = useState(false);
 
   /* SFX */
   const [sounds,        setSounds]        = useState([]);
@@ -1478,15 +1644,17 @@ export default function App() {
                   : <div className="sound-count-num">{headerCount}</div>}
                 <div className="sound-count-label">{headerCountLabel}</div>
               </div>
-              <button
-                onClick={() => !isUploading && setShowUpload(true)}
-                className={`upload-trigger-btn${isUploading?" uploading":""}${activeTab==="txt"?" upload-trigger-txt":activeTab==="vfx"?" upload-trigger-vfx":""}`}
-                disabled={isUploading}
-              >
-                <UploadIcon size={16} strokeWidth={2.4} />
-                <span className="upload-trigger-label">{uploadBtnLabel}</span>
-                <span className="upload-trigger-short">{isUploading?"…":"Add"}</span>
-              </button>
+              {!(activeTab === "txt" && isConstructorOpen) && (
+                <button
+                  onClick={() => !isUploading && setShowUpload(true)}
+                  className={`upload-trigger-btn${isUploading?" uploading":""}${activeTab==="txt"?" upload-trigger-txt":activeTab==="vfx"?" upload-trigger-vfx":""}`}
+                  disabled={isUploading}
+                >
+                  <UploadIcon size={16} strokeWidth={2.4} />
+                  <span className="upload-trigger-label">{uploadBtnLabel}</span>
+                  <span className="upload-trigger-short">{isUploading?"…":"Add"}</span>
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -1523,13 +1691,10 @@ export default function App() {
         {/* ── TXT Section ── */}
         {activeTab === "txt" && (
           <div className="txt-section">
-            <div className="section-search">
-              <div className="search-wrap">
-                <SearchIcon size={18} className="search-icon" />
-                <input value={txtQuery} onChange={e=>setTxtQuery(e.target.value)}
-                  placeholder='Search fonts…' className="search-input search-input-sm" />
-                {txtQuery && <button onClick={()=>setTxtQuery("")} className="search-clear"><XIcon size={16}/></button>}
-              </div>
+            <div className="section-search" style={{ display:"flex", justifyContent:"center" }}>
+              <button className="stc-open-btn" onClick={() => setIsConstructorOpen(true)}>
+                ✦ Special Thanks
+              </button>
             </div>
             {loadingTxt ? (
               <div className="empty-state">
@@ -1692,6 +1857,7 @@ export default function App() {
         )}
       </div>
     </div>
+    {isConstructorOpen && <SpecialThanksConstructor onClose={() => setIsConstructorOpen(false)} />}
     </PasswordGate>
   );
 }

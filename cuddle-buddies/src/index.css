@@ -132,13 +132,20 @@ select option { color: #fff; }
 .header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .header-actions-left  { justify-self: start; }
 .header-actions-right { justify-self: end; }
-.header-title { font-weight: 800; letter-spacing: -.02em; line-height: 1.04; font-size: 38px; margin: 0; white-space: nowrap; }
-@media (min-width: 640px) { .header-title { font-size: 48px; } }
+.header-title { font-weight: 800; letter-spacing: -.02em; line-height: 1.04; font-size: 29px; margin: 0; white-space: nowrap; }
+@media (min-width: 640px) { .header-title { font-size: 36px; } }
 .header-title-gradient {
-  background: linear-gradient(95deg, #A6B5E9 0%, #84CEE0 42%, #7AE0BF 100%);
+  background: linear-gradient(95deg, #A6B5E9 0%, #84CEE0 25%, #7AE0BF 50%, #84CEE0 75%, #A6B5E9 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: titleFlow 6s ease-in-out infinite;
+}
+@keyframes titleFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 .header-title-plain { color: #fff; }
 
